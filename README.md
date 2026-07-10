@@ -1,128 +1,144 @@
-# Udemy Course Finder
+<div align="center">
+  <img src="frontend/public/globe.svg" width="120" height="120" alt="Logo" />
+  
+  # 🎓 Udemy Course Finder
+  
+  **Your personal, automated aggregator for 100% free Udemy courses.**
+  
+  [![NestJS](https://img.shields.io/badge/Backend-NestJS_11-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
+  [![Next.js](https://img.shields.io/badge/Frontend-Next.js_15-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+  [![Python](https://img.shields.io/badge/Scraper-Python_3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+  [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL_16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org/)
+  [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com/)
 
-A localhost-only application that aggregates free Udemy courses from 9 coupon aggregator websites. Automatically scrapes, deduplicates, and serves courses through a modern dashboard.
+</div>
 
-## Architecture
+---
 
+## ✨ Overview
+
+**Udemy Course Finder** is a localhost-only application that continuously discovers free, English-language Udemy courses by scraping a curated set of coupon websites. It normalizes the results, deduplicates them, and presents them in a beautiful, modern dashboard. 
+
+Never manually search coupon sites again—let the Python worker do the heavy lifting in the background while you browse a clean, ad-free interface.
+
+---
+
+## 🏗️ Architecture
+
+The application is built on a robust, microservice-inspired architecture running entirely within Docker:
+
+```mermaid
+graph LR
+    A[Next.js 15<br>Frontend] -->|REST API| B(NestJS 11<br>Backend)
+    B -->|Persists Data| C[(PostgreSQL 16)]
+    B -->|Job Queue| D[(Redis 7)]
+    E[Python 3.12<br>Scraper Worker] -->|Consumes Jobs| D
+    E -->|Scrapes| F[9 External Sites]
 ```
-┌─────────────┐     ┌───────────────┐     ┌──────────────┐
-│   Frontend   │────▶│    Backend     │────▶│  PostgreSQL  │
-│  Next.js 15  │     │   NestJS 11   │     │     16       │
-└─────────────┘     └───────┬───────┘     └──────────────┘
-                            │
-                    ┌───────┴───────┐
-                    │   Redis 7     │
-                    │ BullMQ + Cache│
-                    └───────┬───────┘
-                            │
-                    ┌───────┴───────┐
-                    │ Python Scraper│
-                    │  BullMQ Worker│
-                    └───────────────┘
-```
 
-**Data flow:** Backend enqueues scrape jobs → Python worker scrapes 9 sites → Pipeline: normalize → validate → language-filter → dedup → store to PostgreSQL → Frontend fetches via REST API.
+**Data flow:** Backend enqueues scrape jobs ➔ Python worker scrapes 9 sites ➔ Pipeline: Normalize ➔ Validate ➔ Language-Filter ➔ Deduplicate ➔ Store to PostgreSQL ➔ Frontend fetches via API.
 
-## Tech Stack
+---
 
-| Component | Technology |
-|-----------|-----------|
-| Frontend | Next.js 15 (App Router), React 19, TailwindCSS 4, TanStack Query, Recharts |
-| Backend | NestJS 11, Prisma 7, Passport JWT, BullMQ, Swagger |
-| Scraper | Python 3.12, BeautifulSoup, httpx |
-| Database | PostgreSQL 16 |
-| Cache/Queue | Redis 7 |
-| Deployment | Docker Compose |
+## 🚀 Quick Start
 
-## Quick Start
+Get the entire stack running in less than 5 minutes using Docker Compose.
 
 ```bash
 # 1. Clone the repository
-git clone <repo-url> && cd udemy-course-finder
+git clone https://github.com/Akai-Abd/udemy-course-finder.git
+cd udemy-course-finder
 
-# 2. Copy environment file
+# 2. Copy environment variables
 cp .env.example .env
 
-# 3. Start all services
+# 3. Start all services in the background
 docker compose up -d
 
-# 4. Run database migrations & seed
+# 4. Run database migrations & seed initial data
 docker compose exec backend npx prisma migrate deploy
 docker compose exec backend npx prisma db seed
-
-# 5. Open the dashboard
-open http://localhost:3000
 ```
 
-**Default credentials:** `admin@localhost.local` / `ChangeMe123!`
+🎉 **You're done!** Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Development Setup
+> **Default Admin Credentials:**
+> - **Email:** `admin@localhost.local`
+> - **Password:** `ChangeMe123!`
+
+---
+
+## 🛠️ Tech Stack & Features
+
+<div align="center">
+
+| Component | Technologies Used | Highlight |
+| :--- | :--- | :--- |
+| **🎨 Frontend** | Next.js 15, React 19, TailwindCSS 4 | TanStack Query, Recharts, shadcn/ui |
+| **⚙️ Backend** | NestJS 11, Prisma 7, Passport JWT | BullMQ, Swagger API Docs, Pino Logging |
+| **🕷️ Scraper** | Python 3.12, BeautifulSoup, httpx | Concurrent processing, deduplication pipeline |
+| **🗄️ Database** | PostgreSQL 16 | Relational data, rapid search indexing |
+| **⚡ Cache/Queue**| Redis 7 | BullMQ job orchestration, fast stat caching |
+
+</div>
+
+---
+
+## 🌐 Supported Coupon Sources
+
+The scraper engine currently supports the following **7 primary providers** (with modular architecture to add more):
+
+1. `Real Discount`
+2. `Courson`
+3. `Tutorial Bar`
+4. `Enext`
+5. `iDownloadCoupons`
+6. `Discudemy`
+7. `Udemy Freebies`
+
+---
+
+## 💻 Development Setup
+
+Want to run the services locally without Docker for development?
+
+<details>
+<summary><b>Click to expand development instructions</b></summary>
 
 ### Prerequisites
+* Node.js 20+
+* Python 3.12+
+* PostgreSQL 16
+* Redis 7
 
-- Node.js 20+
-- Python 3.12+
-- PostgreSQL 16
-- Redis 7
-- Docker & Docker Compose (optional)
-
-### Running Locally (without Docker)
-
+### 1. Backend API
 ```bash
-# Backend
 cd backend
 npm install
 npx prisma generate
 npx prisma migrate dev
 npm run start:dev
+```
+*Swagger UI is available at `http://localhost:4000/api`*
 
-# Frontend
+### 2. Frontend Dashboard
+```bash
 cd frontend
 npm install
 npm run dev
+```
 
-# Scraper
+### 3. Python Scraper
+```bash
 cd scraper
 pip install -r requirements.txt
 python -m src.worker
 ```
 
-## API Reference
+</details>
 
-Swagger UI is available at: **http://localhost:4000/api**
-
-### Key Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/auth/login` | Login with email/password |
-| POST | `/auth/logout` | Logout (blacklists JWT) |
-| PATCH | `/auth/password` | Change password |
-| GET | `/courses` | List courses (paginated, filterable) |
-| GET | `/courses/search` | Search courses by text |
-| GET | `/courses/stats` | Dashboard statistics |
-| GET | `/providers` | List scraping providers |
-| POST | `/providers/scrape` | Trigger manual scrape |
-| GET | `/analytics/overview` | Analytics overview |
-| GET | `/analytics/time-series` | Time-series analytics |
-| GET/POST | `/favorites` | Manage favorites |
-| GET/POST/DELETE | `/history` | Manage browsing history |
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:postgres@localhost:5432/udemy_finder` |
-| `REDIS_URL` | Redis connection string | `redis://localhost:6379` |
-| `JWT_SECRET` | JWT signing secret | (required) |
-| `JWT_REFRESH_SECRET` | Refresh token secret | (required) |
-| `JWT_EXPIRY` | Access token TTL | `15m` |
-| `JWT_REFRESH_EXPIRY` | Refresh token TTL | `7d` |
-| `SCRAPE_INTERVAL_MINUTES` | Auto-scrape interval | `30` |
-| `NODE_ENV` | Environment | `development` |
-| `LOG_LEVEL` | Pino log level | `info` |
-
-## Testing
+<details>
+<summary><b>Click to view Testing commands</b></summary>
 
 ```bash
 # Backend unit tests
@@ -140,50 +156,26 @@ cd scraper && python -m pytest tests/ -v
 # Frontend lint + type check
 cd frontend && npx tsc --noEmit && npm run lint
 ```
+</details>
 
-## Project Structure
+---
 
-```
-├── backend/              # NestJS API server
-│   ├── src/
-│   │   ├── auth/         # JWT authentication, token blacklisting
-│   │   ├── courses/      # Course CRUD, search, filtering
-│   │   ├── providers/    # Scraping provider management
-│   │   ├── analytics/    # Dashboard analytics & time-series
-│   │   ├── favorites/    # User favorites
-│   │   ├── history/      # Browsing history tracking
-│   │   ├── jobs/         # BullMQ job orchestration
-│   │   ├── common/       # Guards, filters, cache, logger
-│   │   └── prisma/       # Database client
-│   ├── test/             # E2E tests
-│   └── prisma/           # Schema & migrations
-├── frontend/             # Next.js dashboard
-│   ├── src/
-│   │   ├── app/          # App Router pages
-│   │   ├── components/   # UI components
-│   │   └── lib/          # API client, hooks, utilities
-├── scraper/              # Python scraping worker
-│   ├── src/
-│   │   ├── providers/    # 9 site-specific scrapers
-│   │   ├── pipeline/     # Normalize, validate, filter, dedup
-│   │   └── utils/        # HTTP client, URL parser
-│   └── tests/            # Pytest test suite
-├── docker-compose.yml    # Service orchestration
-└── .env.example          # Environment template
+## 📁 Project Structure
+
+```text
+udemy-course-finder/
+├── backend/              # 🟢 NestJS API server (Auth, CRUD, Jobs, Analytics)
+├── frontend/             # 🔵 Next.js dashboard (App Router, UI Components)
+├── scraper/              # 🐍 Python scraping worker (Pipelines, Extractors)
+├── docker-compose.yml    # 🐳 Service orchestration
+└── .env.example          # 🔑 Environment template
 ```
 
-## Coupon Sources
+---
 
-| # | Provider | URL |
-|---|----------|-----|
-| 1 | Real Discount | real.discount |
-| 2 | Courson | courson.xyz |
-| 3 | Tutorial Bar | tutorialbar.com |
-| 4 | Enext | enext.fr |
-| 5 | iDownloadCoupons | idownloadcoupon.com |
-| 6 | Discudemy | discudemy.com |
-| 7 | Udemy Freebies | udemyfreebies.com |
-
-## License
-
-UNLICENSED — Personal use only.
+<div align="center">
+  
+  *Built with ❤️ for lifelong learners.*
+  
+  **UNLICENSED — Personal use only.**
+</div>
