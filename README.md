@@ -178,7 +178,7 @@ udemy-course-finder/
 
 <div align="center">
   
-  *Built with ❤️ for lifelong learners.*
+  *Built By Akai ❤️ for lifelong learners.*
   
   **UNLICENSED — Personal use only.**
 </div>
