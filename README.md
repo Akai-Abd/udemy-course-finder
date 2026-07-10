@@ -86,15 +86,18 @@ docker compose exec backend npx prisma db seed
 
 ## 🌐 Supported Coupon Sources
 
-The scraper engine currently supports the following **7 primary providers** (with modular architecture to add more):
+The scraper engine currently supports the following **10 primary providers** (with modular architecture to add more):
 
-1. `Real Discount`
-2. `Courson`
-3. `Tutorial Bar`
-4. `Enext`
-5. `iDownloadCoupons`
-6. `Discudemy`
-7. `Udemy Freebies`
+1. `Coupon Scorpion`
+2. `Course Joiner`
+3. `Courson`
+4. `Discudemy`
+5. `Enext`
+6. `Freebies Global`
+7. `FreeWebCart`
+8. `iDownloadCoupons`
+9. `Real Discount`
+10. `Udemy Freebies`
 
 ---
 
