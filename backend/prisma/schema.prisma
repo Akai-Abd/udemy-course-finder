@@ -1,0 +1,213 @@
+// ============================================================
+// Udemy Course Finder — Database Schema
+// ============================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [vector]
+}
+
+// ───────────── Enums ─────────────
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum ProviderStatus {
+  SUCCESS
+  FAILED
+  RUNNING
+  IDLE
+}
+
+enum LogStatus {
+  SUCCESS
+  FAILED
+  RUNNING
+  CANCELLED
+}
+
+enum HistoryAction {
+  VIEWED
+  CLICKED
+  ENROLLED
+}
+
+// ───────────── Users ─────────────
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  role         Role       @default(USER)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  favorites Favorite[]
+  history   History[]
+
+  @@map("users")
+}
+
+// ───────────── Courses ─────────────
+
+model Course {
+  id             String    @id @default(uuid())
+  title          String
+  description    String?   @db.Text
+  udemyUrl       String    @map("udemy_url")
+  udemyCourseId  String    @unique @map("udemy_course_id")
+  categoryId     String?   @map("category_id")
+  language       String    @default("English")
+  thumbnailUrl   String?   @map("thumbnail_url")
+  rating         Float?
+  instructor     String?
+  priceOriginal  Float?    @map("price_original")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  category  Category?  @relation(fields: [categoryId], references: [id])
+  favorites Favorite[]
+  history   History[]
+
+  couponSources CouponSource[]
+  embedding     CourseEmbedding?
+
+  @@index([language], name: "idx_language")
+  @@index([categoryId], name: "idx_category")
+  @@index([createdAt], name: "idx_created_at")
+  @@map("courses")
+}
+
+// ───────────── Providers (Scraper Sources) ─────────────
+
+model Provider {
+  id         String         @id @default(uuid())
+  name       String         @unique
+  baseUrl    String         @map("base_url")
+  isEnabled  Boolean        @default(true) @map("is_enabled")
+  timeoutMs  Int            @default(30000) @map("timeout_ms")
+  lastRunAt  DateTime?      @map("last_run_at")
+  lastStatus ProviderStatus @default(IDLE) @map("last_status")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+
+  couponSources CouponSource[]
+  logs          Log[]
+
+  @@map("providers")
+}
+
+// ───────────── Coupon Sources ─────────────
+
+model CouponSource {
+  id             String    @id @default(uuid())
+  courseId       String    @map("course_id")
+  providerId     String    @map("provider_id")
+  couponUrl      String    @map("coupon_url")
+  isFree         Boolean   @default(true) @map("is_free")
+  expiresAt      DateTime? @map("expires_at")
+  firstSeenAt    DateTime  @default(now()) @map("first_seen_at")
+  lastVerifiedAt DateTime  @default(now()) @map("last_verified_at")
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, providerId], name: "unique_coupon_per_provider")
+  @@index([isActive, expiresAt], name: "idx_source_active_expiry")
+  @@index([providerId], name: "idx_source_provider")
+  @@map("coupon_sources")
+}
+
+// ───────────── Categories ─────────────
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  courses Course[]
+
+  @@map("categories")
+}
+
+// ───────────── Favorites ─────────────
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  courseId   String   @map("course_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId], name: "unique_user_course_favorite")
+  @@map("favorites")
+}
+
+// ───────────── History ─────────────
+
+model History {
+  id        String        @id @default(uuid())
+  userId    String        @map("user_id")
+  courseId   String        @map("course_id")
+  action    HistoryAction
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt], name: "idx_user_history")
+  @@map("history")
+}
+
+// ───────────── Scraper Logs ─────────────
+
+model Log {
+  id         String    @id @default(uuid())
+  providerId String    @map("provider_id")
+  jobId      String?   @map("job_id")
+  status     LogStatus
+  message    String?   @db.Text
+  coursesFound    Int  @default(0) @map("courses_found")
+  coursesAccepted Int  @default(0) @map("courses_accepted")
+  coursesRejected Int  @default(0) @map("courses_rejected")
+  startedAt  DateTime  @default(now()) @map("started_at")
+  finishedAt DateTime? @map("finished_at")
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId, startedAt], name: "idx_provider_logs")
+  @@map("logs")
+}
+
+// ───────────── App Settings ─────────────
+
+model Setting {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+
+  @@map("settings")
+}
+
+// ───────────── Course Embeddings (pgvector) ─────────────
+
+model CourseEmbedding {
+  courseId  String                    @id @map("course_id")
+  embedding Unsupported("vector(384)")
+  course    Course                    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("course_embeddings")
+}

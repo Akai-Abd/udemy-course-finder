@@ -1,0 +1,145 @@
+services:
+  # ───────────── PostgreSQL ─────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ucf-postgres
+    restart: unless-stopped
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ───────────── Redis ─────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ucf-redis
+    restart: unless-stopped
+    ports:
+      - '6380:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ───────────── Backend (NestJS) ─────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ucf-backend
+    restart: unless-stopped
+    ports:
+      - '4001:4000'
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_EXPIRY: ${JWT_EXPIRY}
+      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY}
+      DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD}
+      BACKEND_PORT: 4000
+      NODE_ENV: ${NODE_ENV:-development}
+      SCRAPE_INTERVAL_MINUTES: ${SCRAPE_INTERVAL_MINUTES}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3001}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ───────────── Frontend (Next.js) ─────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4001}
+    container_name: ucf-frontend
+    restart: unless-stopped
+    ports:
+      - '3001:3000'
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4001}
+    depends_on:
+      - backend
+
+  # ───────────── Python Scraper Engine ─────────────
+  scraper:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    container_name: ucf-scraper
+    restart: unless-stopped
+    environment:
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      SCRAPE_INTERVAL_MINUTES: ${SCRAPE_INTERVAL_MINUTES}
+      SCRAPE_DELAY_SECONDS: ${SCRAPE_DELAY_SECONDS:-2}
+      VALIDATE_URLS: ${VALIDATE_URLS:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      MAX_RETRIES: ${MAX_RETRIES:-3}
+      DEFAULT_TIMEOUT_MS: ${DEFAULT_TIMEOUT_MS:-30000}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import redis; r = redis.Redis.from_url('redis://redis:6379'); r.ping()"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+#  # ───────────── pgAdmin ─────────────
+#  pgadmin:
+#    image: dpage/pgadmin4:latest
+#    container_name: ucf-pgadmin
+#    restart: unless-stopped
+#    ports:
+#      - '5050:80'
+#    environment:
+#      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+#      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+#    volumes:
+#      - pgadmin_data:/var/lib/pgadmin
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#
+#  # ───────────── Redis Commander ─────────────
+#  redis-commander:
+#    image: rediscommander/redis-commander:latest
+#    container_name: ucf-redis-commander
+#    restart: unless-stopped
+#    ports:
+#      - '8081:8081'
+#    environment:
+#      REDIS_HOSTS: local:redis:6379
+#    depends_on:
+#      redis:
+#        condition: service_healthy
+
+volumes:
+  postgres_data:
+    name: ucf-postgres-data
+  redis_data:
+    name: ucf-redis-data
+#  pgadmin_data:
+#    name: ucf-pgadmin-data

@@ -1,0 +1,93 @@
+
+To log into and connect via **pgAdmin**, follow these steps:
+
+### Step 1: Open the pgAdmin Portal
+Open your web browser and navigate to:
+👉 **[http://localhost:5050](http://localhost:5050)**
+
+### Step 2: Log In
+On the login screen, enter the default credentials defined in your `.env` file:
+* **Email Address:** `admin@example.com`
+* **Password:** `admin`
+
+---
+
+### Step 3: Register / Connect to the Database Server
+Once you are logged in, you need to register the PostgreSQL server instance to view the tables:
+
+1. Right-click on **Servers** in the left sidebar and select **Register** ➔ **Server...** (or click **Add New Server** on the Quick Links dashboard).
+2. Under the **General** tab:
+   * **Name:** `Udemy Course Finder DB` (or any name you prefer).
+3. Under the **Connection** tab, fill in the following details (matching your `.env` database settings):
+   * **Host name/address:** `postgres` *(this is the Docker service name)*
+   * **Port:** `5432`
+   * **Maintenance database:** `udemy_finder`
+   * **Username:** `udemy_finder`
+   * **Password:** `change_me_in_production`
+4. Click **Save**.
+
+Now you will be able to expand the server in the left pane under `Databases ➔ udemy_finder ➔ Schemas ➔ public ➔ Tables` to browse your tables (like `logs`, `courses`, `providers`, etc.)!
+
+
+
+
+
+
+
+In the **Udemy Course Finder** project, **pgAdmin** serves as a web-based administration and management tool for your PostgreSQL database. 
+
+Since your project consists of three separate moving parts—a **Python Scraper**, a **NestJS Backend**, and a **Next.js Frontend**—having a database GUI like pgAdmin is highly beneficial. Here is a detailed breakdown of its use cases, benefits, and how to use it in this project:
+
+---
+
+### 1. Key Use Cases in This Project
+
+#### A. Verifying Scraped Data
+* **Scenario:** The Python scraper runs and says it successfully found courses, but they are not appearing on the frontend.
+* **pgAdmin Use:** You can open the `courses` table and search/query to check if the raw course data was actually written to the database or if it was rejected during backend validation.
+* **SQL Example in pgAdmin:**
+  ```sql
+  SELECT title, url, provider_id, status FROM courses ORDER BY created_at DESC LIMIT 10;
+  ```
+
+#### B. Debugging Scraping Logs & Stats (Like your previous question)
+* **Scenario:** You want to double-check why a provider's success rate is at a certain percentage or look at old logs beyond the 5 visible in the frontend dashboard.
+* **pgAdmin Use:** You can inspect the `logs` table directly to see every single scraping run status, starting time, and exact error message.
+* **SQL Example in pgAdmin:**
+  ```sql
+  SELECT * FROM logs WHERE provider_id = 'your-provider-id-here' ORDER BY started_at DESC;
+  ```
+
+#### C. Inspecting User Accounts and Seeds
+* **Scenario:** You forgot the password or want to check if the default administrator was successfully seeded.
+* **pgAdmin Use:** You can view the `users` table to verify seeded users, see their emails, and check if passwords are encrypted properly.
+
+#### D. Quick Data Cleaning & Testing
+* **Scenario:** You want to delete some duplicate test courses or reset a provider's scraper status manually.
+* **pgAdmin Use:** Instead of writing code, you can use the graphical interface in pgAdmin to edit a row or run a quick `DELETE` / `UPDATE` query.
+
+---
+
+### 2. Core Benefits of Using pgAdmin
+
+1. **No SQL Expertise Required for Basic Tasks:** You can view, filter, sort, edit, and insert data directly through a spreadsheet-like grid interface without writing a single line of SQL.
+2. **Interactive Query Tool:** Write complex SQL queries with auto-complete to inspect your data and instantly see the results.
+3. **Database Performance Monitoring:** Monitor active database sessions, locks, and query execution times to see if your scraper or backend is running slow queries.
+4. **Schema Visualization:** Visually inspect columns, datatypes, default values, primary keys, and foreign keys created by Prisma.
+
+---
+
+### 3. How to Use pgAdmin in Your Daily Development
+
+Once you have added your database to pgAdmin:
+
+1. **Locate Your Tables:**
+   * Go to: `Servers ➔ Udemy Course Finder DB ➔ Databases ➔ udemy_finder ➔ Schemas ➔ public ➔ Tables`.
+   * You will see the tables used by your application: `courses`, `logs`, `providers`, `users`, etc.
+2. **View Rows Instantly:**
+   * Right-click on any table (e.g., `courses`).
+   * Select **View/Edit Data** ➔ **All Rows** (or **First 100 Rows**).
+3. **Run Custom SQL Queries:**
+   * Click on the database `udemy_finder`.
+   * Click the **Query Tool** button (the database icon with a lightning bolt) in the top toolbar.
+   * Write your SQL query and click the **Execute/Refresh** button (or press `F5`).
