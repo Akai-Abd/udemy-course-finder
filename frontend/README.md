@@ -1,16 +1,17 @@
 # Frontend — Next.js Dashboard
 
-Modern dashboard for browsing, searching, and managing free Udemy courses. Built with Next.js 15 (App Router), React 19, TailwindCSS 4, and TanStack Query.
+Modern dashboard for browsing, searching, and managing free Udemy courses. Built with Next.js 16 (App Router), React 19, TailwindCSS 4, and TanStack Query.
 
 ## Pages
 
 | Route | Description |
 |-------|-------------|
 | `/login` | JWT authentication login |
-| `/` | Dashboard — course stats, recent courses |
+| `/` | Redirects to `/dashboard` (authenticated) or `/login` |
+| `/dashboard` | Dashboard — course stats, recent courses |
 | `/courses` | Browse all courses with filters & search |
 | `/analytics` | Time-series charts & overview stats |
-| `/providers` | Manage scraping sources |
+| `/sources` | Manage scraping providers |
 | `/favorites` | Saved courses |
 | `/history` | Browsing & click history |
 | `/settings` | Profile, security, password change |
@@ -32,19 +33,24 @@ src/
 │   ├── (dashboard)/      # Authenticated layout group
 │   │   ├── analytics/    # Analytics with Recharts charts
 │   │   ├── courses/      # Course browser
+│   │   ├── dashboard/    # Main dashboard
 │   │   ├── favorites/    # Favorites list
 │   │   ├── history/      # History with clear support
-│   │   ├── providers/    # Provider management
+│   │   ├── sources/      # Provider management
 │   │   └── settings/     # Settings + password change
 │   ├── login/            # Public login page
 │   └── globals.css       # Global styles & design tokens
 ├── components/
 │   ├── analytics/        # TimeSeriesChart, DateRangeSelector
+│   ├── courses/          # Course list, filters, search
+│   ├── providers/        # Provider cards, logs, stats
+│   ├── layout/           # Sidebar, header, navigation
 │   ├── shared/           # LoadingState, ErrorState, EmptyState
 │   └── ui/               # Radix-based UI primitives (shadcn/ui)
 └── lib/
     ├── api-client.ts     # Axios client with JWT interceptors
-    └── hooks/            # TanStack Query hooks per domain
+    ├── hooks/            # TanStack Query hooks per domain
+    └── utils.ts          # Utility functions
 ```
 
 ## Key Libraries

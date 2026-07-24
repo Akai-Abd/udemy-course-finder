@@ -8,13 +8,15 @@ REST API powering the Udemy Course Finder dashboard. Handles authentication, cou
 AppModule
 ├── AuthModule          — JWT auth, token blacklisting, password change
 ├── UsersModule         — User repository (find, update password)
-├── CoursesModule       — Course CRUD, search, filtering, pagination
+├── CoursesModule       — Course CRUD, search, semantic search, pagination
 ├── ProvidersModule     — Provider management, scrape triggers, logs
 ├── FavoritesModule     — User favorites (add/remove/list)
 ├── HistoryModule       — Browsing history tracking & clear
 ├── AnalyticsModule     — Overview stats & time-series aggregation
 ├── CategoriesModule    — Course categories
 ├── JobsModule          — BullMQ job orchestration
+├── EmbeddingsModule    — HuggingFace vector embedding generation
+├── SettingsModule      — App settings (key-value store)
 ├── RedisCacheModule    — Redis cache layer (global)
 ├── LoggerModule        — Structured logging via Pino (global)
 ├── ConfigModule        — Environment configuration

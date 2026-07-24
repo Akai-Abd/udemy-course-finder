@@ -1,6 +1,6 @@
 # Scraper — Python Scraping Worker
 
-BeautifulSoup-based scraping worker that discovers free Udemy courses from 9 coupon aggregator websites. Runs as a BullMQ worker consuming jobs from Redis.
+BeautifulSoup-based scraping worker that discovers free Udemy courses from 10 coupon aggregator websites. Runs as a BullMQ job consumer connected to Redis.
 
 ## Architecture
 
@@ -9,7 +9,7 @@ BullMQ Job (Redis)
     │
     ▼
 ┌─────────────────┐
-│  Worker (main)   │
+│  ScraperEngine   │
 │  Picks provider  │
 └────────┬────────┘
          │
@@ -31,19 +31,21 @@ Each provider is a Python class in `src/providers/` that extends `BaseScraper`:
 
 | Provider | Class | File |
 |----------|-------|------|
-| Real Discount | `RealDiscountScraper` | `real_discount.py` |
+| Coupon Scorpion | `CouponScorpionScraper` | `coupon_scorpion.py` |
+| CourseJoiner | `CourseJoinerScraper` | `course_joiner.py` |
 | Courson | `CoursonScraper` | `courson.py` |
-| Tutorial Bar | `TutorialBarScraper` | `tutorial_bar.py` |
-| Enext | `EnextScraper` | `enext.py` |
+| DiscUdemy | `DiscUdemyScraper` | `discudemy.py` |
+| E-next | `EnextScraper` | `enext.py` |
+| Freebies Global | `FreebiesGlobalScraper` | `freebies_global.py` |
+| FreeWebCart | `FreeWebCartScraper` | `freewebcart.py` |
 | iDownloadCoupons | `IDownloadCouponsScraper` | `idownloadcoupons.py` |
-| Discudemy | `DiscudemyScraper` | `discudemy.py` |
+| Real Discount | `RealDiscountScraper` | `real_discount.py` |
 | Udemy Freebies | `UdemyFreebiesScraper` | `udemy_freebies.py` |
-| Course Joiner | `CourseJoinerScraper` | `course_joiner.py` |
-| Course Vania | `CourseVaniaScraper` | `course_vania.py` |
 
 ## Setup
 
 ```bash
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -51,7 +53,7 @@ pip install -r requirements.txt
 
 ```bash
 # As a BullMQ worker (production)
-python -m src.worker
+python -m src.main
 
 # Run a single provider test
 python -c "from src.providers.real_discount import RealDiscountScraper; s = RealDiscountScraper(); print(s.test_connectivity())"
@@ -67,6 +69,9 @@ python -m pytest tests/ -v
 python -m pytest tests/test_pipeline.py -v
 python -m pytest tests/test_providers.py -v
 python -m pytest tests/test_store.py -v
+python -m pytest tests/test_url_parser.py -v
+python -m pytest tests/test_expiry_validator.py -v
+python -m pytest tests/test_language_filter.py -v
 
 # With coverage
 python -m pytest tests/ --cov=src --cov-report=term-missing
@@ -76,15 +81,24 @@ python -m pytest tests/ --cov=src --cov-report=term-missing
 
 1. Create `src/providers/your_provider.py`
 2. Extend `BaseScraper`, implement `name`, `base_url`, and `scrape()`
-3. Register in `src/providers/__init__.py`
+3. Register in `src/providers/__init__.py` (`SCRAPER_REGISTRY`)
 4. Add an HTML fixture in `tests/fixtures/`
 5. Add tests in `tests/test_providers.py`
 6. Seed the provider in `backend/prisma/seed.ts`
 
 ## Pipeline Stages
 
-1. **Normalize** — Standardize URLs, strip tracking params, clean text
+1. **Normalize** — Standardize URLs, strip tracking params, clean titles (remove `[FREE]`/`[COUPON]` noise), resolve redirects, extract Udemy course IDs
 2. **Validate** — Check required fields (title + URL), verify Udemy URL format
-3. **Language Filter** — Keep English and unspecified; drop other languages
-4. **Deduplicate** — Merge courses with same Udemy URL, prefer richer metadata
-5. **Store** — Upsert into PostgreSQL via the backend API
+3. **Language Filter** — Keep English courses; reject non-English via `langdetect`
+4. **Deduplicate** — Merge courses with same Udemy course ID, prefer records with higher metadata richness score
+5. **Store** — Upsert courses and coupon sources into PostgreSQL
+
+## Job Types
+
+| Job Name | Description |
+|----------|-------------|
+| `scrape-all` | Scrape all enabled providers |
+| `scrape-single` | Scrape a specific provider by ID or name |
+| `test-provider` | Test provider connectivity |
+| `validate-active-courses` | Verify active coupons haven't expired |
