@@ -1,7 +1,7 @@
 # Udemy Course Finder — Production Requirements Document
 
 **Version:** 1.0  
-**Author:** Akai  
+**Author:** Abdurrahman  
 **Date:** 2026-07-25  
 **Status:** Active  
 **License:** UNLICENSED — Personal use only
