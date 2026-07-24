@@ -30,10 +30,7 @@ export class CoursesRepository {
     const activeFilter: Prisma.CouponSourceWhereInput = {
       isActive: true,
       isFree: true,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gte: new Date() } }
-      ]
+      OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
     };
 
     const where: Prisma.CourseWhereInput = {
@@ -119,10 +116,7 @@ export class CoursesRepository {
     const activeFilter: Prisma.CouponSourceWhereInput = {
       isActive: true,
       isFree: true,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gte: new Date() } }
-      ]
+      OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
     };
 
     const where: Prisma.CourseWhereInput = {

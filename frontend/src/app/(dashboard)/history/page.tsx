@@ -188,7 +188,7 @@ export default function HistoryPage() {
           </TabsTrigger>
           <TabsTrigger value="CLICKED" className="gap-1.5 rounded-lg font-bold text-xs px-4 h-9">
             <MousePointer className="h-3.5 w-3.5" />
-            Clicked "Get"
+            Clicked &quot;Get&quot;
           </TabsTrigger>
           <TabsTrigger value="ENROLLED" className="gap-1.5 rounded-lg font-bold text-xs px-4 h-9">
             <GraduationCap className="h-3.5 w-3.5" />

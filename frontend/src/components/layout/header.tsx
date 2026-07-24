@@ -74,7 +74,7 @@ export function Header() {
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-bold leading-none text-foreground/90">Admin</p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  admin@localhost
+                  admin@localhost.local
                 </p>
               </div>
             </DropdownMenuLabel>

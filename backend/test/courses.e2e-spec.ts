@@ -4,7 +4,6 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { CoursesModule } from '../src/courses/courses.module';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { PrismaModule } from '../src/prisma/prisma.module';
 import { ConfigModule } from '../src/config/config.module';
 import { RedisCacheService } from '../src/common/cache/redis-cache.service';
 import { JwtService, JwtModule } from '@nestjs/jwt';

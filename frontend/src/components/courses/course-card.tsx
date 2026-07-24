@@ -24,12 +24,7 @@ function useCountdown(expiresAt: string | null) {
   const [isExpired, setIsExpired] = useState(false);
 
   useEffect(() => {
-    if (!expiresAt) {
-      setTimeLeft(null);
-      setIsUrgent(false);
-      setIsExpired(false);
-      return;
-    }
+    if (!expiresAt) return;
 
     const updateTimer = () => {
       const now = new Date().getTime();
@@ -43,24 +38,22 @@ function useCountdown(expiresAt: string | null) {
         return;
       }
 
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
+      setIsUrgent(hours < 6);
       setIsExpired(false);
-      if (days > 1) {
-        setTimeLeft(`${days}d left`);
-        setIsUrgent(false);
-      } else if (days === 1) {
-        setTimeLeft(`1d ${hours}h left`);
-        setIsUrgent(false);
+
+      if (hours >= 24) {
+        const days = Math.floor(hours / 24);
+        setTimeLeft(`${days}d ${hours % 24}h remaining`);
       } else if (hours > 0) {
-        setTimeLeft(`${hours}h ${minutes}m left`);
-        setIsUrgent(hours < 4); // Urgent if less than 4 hours left
+        setTimeLeft(`${hours}h ${minutes}m remaining`);
+      } else if (minutes > 0) {
+        setTimeLeft(`${minutes}m ${seconds}s remaining`);
       } else {
-        setTimeLeft(`${minutes}m ${seconds}s left`);
-        setIsUrgent(true);
+        setTimeLeft(`${seconds}s remaining`);
       }
     };
 
@@ -69,6 +62,10 @@ function useCountdown(expiresAt: string | null) {
 
     return () => clearInterval(interval);
   }, [expiresAt]);
+
+  if (!expiresAt) {
+    return { timeLeft: null, isUrgent: false, isExpired: false };
+  }
 
   return { timeLeft, isUrgent, isExpired };
 }

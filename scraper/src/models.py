@@ -87,8 +87,7 @@ class ScrapeResult:
             self.message = message
 
     @property
-    def duration_seconds(self) -> float:
+    def duration_seconds(self) -> float | None:
         """Duration of the scrape run in seconds."""
-        if self.finished_at:
-            return (self.finished_at - self.started_at).total_seconds()
-        return 0.0
+        return (self.finished_at - self.started_at).total_seconds() if self.finished_at else None
+

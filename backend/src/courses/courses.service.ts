@@ -8,16 +8,18 @@ import { EmbeddingsService } from '../embeddings/embeddings.service';
 
 export function mapCourseToResponse(course: any): any {
   if (!course) return null;
-  const activeSources = course.couponSources?.filter(
-    (s: any) =>
-      s.isActive &&
-      s.isFree &&
-      (!s.expiresAt || new Date(s.expiresAt) >= new Date()),
-  ) || [];
+  const activeSources =
+    course.couponSources?.filter(
+      (s: any) =>
+        s.isActive &&
+        s.isFree &&
+        (!s.expiresAt || new Date(s.expiresAt) >= new Date()),
+    ) || [];
 
-  const source = activeSources.length > 0
-    ? activeSources[0]
-    : (course.couponSources?.[0] || {});
+  const source =
+    activeSources.length > 0
+      ? activeSources[0]
+      : course.couponSources?.[0] || {};
 
   return {
     id: course.id,
@@ -44,7 +46,11 @@ export function mapCourseToResponse(course: any): any {
     firstSeenAt: source.firstSeenAt || course.createdAt,
     lastVerifiedAt: source.lastVerifiedAt || course.updatedAt,
     isActive: source.isActive !== undefined ? source.isActive : false,
-    provider: source.provider || (source.providerId ? { id: source.providerId, name: 'Unknown' } : undefined),
+    provider:
+      source.provider ||
+      (source.providerId
+        ? { id: source.providerId, name: 'Unknown' }
+        : undefined),
     similarity: course.similarity,
 
     // Full relation for advanced usage
@@ -165,10 +171,21 @@ export class CoursesService {
 
     // Get excluded course IDs (already favorited or visited in history)
     const [favCourses, histCourses] = await Promise.all([
-      this.prisma.favorite.findMany({ where: { userId }, select: { courseId: true } }),
-      this.prisma.history.findMany({ where: { userId }, select: { courseId: true } }),
+      this.prisma.favorite.findMany({
+        where: { userId },
+        select: { courseId: true },
+      }),
+      this.prisma.history.findMany({
+        where: { userId },
+        select: { courseId: true },
+      }),
     ]);
-    const excludedCourseIds = [...new Set([...favCourses.map((f) => f.courseId), ...histCourses.map((h) => h.courseId)])];
+    const excludedCourseIds = [
+      ...new Set([
+        ...favCourses.map((f) => f.courseId),
+        ...histCourses.map((h) => h.courseId),
+      ]),
+    ];
 
     let recommended: Course[] = [];
     const activeFilter = {
@@ -185,10 +202,7 @@ export class CoursesService {
           categoryId: { in: sortedCategories },
           couponSources: { some: activeFilter },
         },
-        orderBy: [
-          { rating: 'desc' },
-          { createdAt: 'desc' },
-        ],
+        orderBy: [{ rating: 'desc' }, { createdAt: 'desc' }],
         take: 10,
         include: {
           couponSources: {
@@ -212,10 +226,7 @@ export class CoursesService {
           id: { notIn: [...excludedCourseIds, ...alreadyRecommendedIds] },
           couponSources: { some: activeFilter },
         },
-        orderBy: [
-          { rating: 'desc' },
-          { createdAt: 'desc' },
-        ],
+        orderBy: [{ rating: 'desc' }, { createdAt: 'desc' }],
         take: needed,
         include: {
           couponSources: {
@@ -233,7 +244,9 @@ export class CoursesService {
     return recommended.map(mapCourseToResponse);
   }
 
-  async semanticSearch(dto: SearchCoursesDto): Promise<PaginatedResult<Course>> {
+  async semanticSearch(
+    dto: SearchCoursesDto,
+  ): Promise<PaginatedResult<Course>> {
     const searchText = dto.query || dto.q;
     if (!searchText) {
       return this.search(dto);
@@ -308,7 +321,7 @@ export class CoursesService {
         limit,
         totalPages: Math.ceil(total / limit),
       };
-    } catch (error) {
+    } catch {
       return this.search(dto);
     }
   }
@@ -355,8 +368,8 @@ export class CoursesService {
           };
         })
         .filter(Boolean)
-        .map(mapCourseToResponse) as any[];
-    } catch (error) {
+        .map(mapCourseToResponse);
+    } catch {
       return [];
     }
   }

@@ -12,7 +12,7 @@ async function main() {
   console.log('🌱 Seeding database...');
 
   // ───────────── Seed Admin User ─────────────
-  const adminEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@localhost';
+  const adminEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@localhost.local';
   const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'ChangeMe123!';
 
   const existingAdmin = await prisma.user.findUnique({

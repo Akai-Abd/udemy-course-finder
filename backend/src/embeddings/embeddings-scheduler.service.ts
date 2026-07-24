@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmbeddingsService } from './embeddings.service';
 
@@ -16,10 +21,14 @@ export class EmbeddingsScheduler implements OnModuleInit, OnModuleDestroy {
   onModuleInit() {
     this.logger.log('Starting missing embeddings processor loop...');
     // Run initial scan after 10 seconds to allow application startup
-    setTimeout(() => this.processMissingEmbeddings(), 10000);
-    
+    setTimeout(() => {
+      void this.processMissingEmbeddings();
+    }, 10000);
+
     // Check every 2 minutes for new/un-embedded courses
-    this.intervalId = setInterval(() => this.processMissingEmbeddings(), 120000);
+    this.intervalId = setInterval(() => {
+      void this.processMissingEmbeddings();
+    }, 120000);
   }
 
   onModuleDestroy() {
@@ -53,7 +62,9 @@ export class EmbeddingsScheduler implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      this.logger.log(`Found ${courses.length} courses missing embeddings. Processing...`);
+      this.logger.log(
+        `Found ${courses.length} courses missing embeddings. Processing...`,
+      );
 
       for (const course of courses) {
         try {
@@ -61,7 +72,7 @@ export class EmbeddingsScheduler implements OnModuleInit, OnModuleDestroy {
           const vector = await this.embeddingsService.generate(text);
 
           const vectorSql = `[${vector.join(',')}]`;
-          
+
           // Use raw query since Prisma Unsupported type doesn't support direct object mapping
           await this.prisma.$executeRawUnsafe(
             `INSERT INTO course_embeddings (course_id, embedding)
@@ -72,11 +83,16 @@ export class EmbeddingsScheduler implements OnModuleInit, OnModuleDestroy {
             vectorSql,
           );
         } catch (err) {
-          this.logger.error(`Failed to process embedding for course ${course.id}:`, err);
+          this.logger.error(
+            `Failed to process embedding for course ${course.id}:`,
+            err,
+          );
         }
       }
 
-      this.logger.log(`Successfully processed embeddings for ${courses.length} courses`);
+      this.logger.log(
+        `Successfully processed embeddings for ${courses.length} courses`,
+      );
     } catch (error) {
       this.logger.error('Error during missing embeddings scan:', error);
     } finally {

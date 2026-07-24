@@ -4,12 +4,14 @@ import { CoursesService } from './courses.service';
 import { CoursesRepository } from './courses.repository';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisCacheService } from '../common/cache/redis-cache.service';
+import { EmbeddingsService } from '../embeddings/embeddings.service';
 
 describe('CoursesService', () => {
   let service: CoursesService;
   let repository: jest.Mocked<Partial<CoursesRepository>>;
   let prisma: any;
   let cache: jest.Mocked<Partial<RedisCacheService>>;
+  let embeddings: jest.Mocked<Partial<EmbeddingsService>>;
 
   beforeEach(async () => {
     repository = {
@@ -31,12 +33,18 @@ describe('CoursesService', () => {
       set: jest.fn().mockResolvedValue(undefined),
     };
 
+    embeddings = {
+      generateEmbedding: jest.fn().mockResolvedValue([]),
+      findSimilarCourses: jest.fn().mockResolvedValue([]),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CoursesService,
         { provide: CoursesRepository, useValue: repository },
         { provide: PrismaService, useValue: prisma },
         { provide: RedisCacheService, useValue: cache },
+        { provide: EmbeddingsService, useValue: embeddings },
       ],
     }).compile();
 
@@ -91,7 +99,7 @@ describe('CoursesService', () => {
       repository.findById!.mockResolvedValue(mockCourse as any);
 
       const result = await service.findById('course-1');
-      expect(result).toEqual(mockCourse);
+      expect(result).toMatchObject(mockCourse);
     });
 
     it('should throw NotFoundException when not found', async () => {

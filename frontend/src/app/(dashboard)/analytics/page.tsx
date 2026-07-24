@@ -16,7 +16,6 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { TimeSeriesChart } from "@/components/analytics/time-series-chart";
 import { DateRangeSelector } from "@/components/analytics/date-range-selector";
-import { cn } from "@/lib/utils";
 
 const PROVIDER_COLORS = [
   "#6366f1", "#8b5cf6", "#a855f7", "#d946ef",

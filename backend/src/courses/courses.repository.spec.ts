@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CoursesRepository } from './courses.repository';
 import { PrismaService } from '../prisma/prisma.service';
-import { CourseSortBy } from './dto';
 
 describe('CoursesRepository', () => {
   let repository: CoursesRepository;
@@ -63,7 +62,11 @@ describe('CoursesRepository', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             categoryId: 'cat-1',
-            providerId: 'prov-1',
+            couponSources: {
+              some: expect.objectContaining({
+                providerId: 'prov-1',
+              }),
+            },
           }),
         }),
       );
@@ -147,8 +150,12 @@ describe('CoursesRepository', () => {
       expect(prisma.course.count).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            isActive: true,
-            isFree: true,
+            couponSources: {
+              some: expect.objectContaining({
+                isActive: true,
+                isFree: true,
+              }),
+            },
           }),
         }),
       );
@@ -165,9 +172,13 @@ describe('CoursesRepository', () => {
       expect(prisma.course.count).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            isActive: true,
-            isFree: true,
-            expiresAt: expect.any(Object),
+            couponSources: {
+              some: expect.objectContaining({
+                isActive: true,
+                isFree: true,
+                expiresAt: expect.any(Object),
+              }),
+            },
           }),
         }),
       );

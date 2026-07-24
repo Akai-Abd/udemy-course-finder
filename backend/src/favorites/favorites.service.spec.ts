@@ -30,7 +30,7 @@ describe('FavoritesService', () => {
       repository.findByUser!.mockResolvedValue(mockFavorites as any);
 
       const result = await service.findByUser('user-1');
-      expect(result).toEqual(mockFavorites);
+      expect(result).toEqual([{ id: 'fav-1', courseId: 'c1', course: null }]);
     });
   });
 

@@ -24,6 +24,10 @@ describe('AnalyticsService', () => {
       category: {
         findMany: jest.fn().mockResolvedValue([]),
       },
+      couponSource: {
+        groupBy: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+      },
       $queryRaw: jest.fn().mockResolvedValue([]),
     };
 

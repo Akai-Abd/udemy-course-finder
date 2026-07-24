@@ -39,8 +39,9 @@ export default function SettingsPage() {
     try {
       await settingsApi.update("proxies", proxies);
       toast.success("Scraper proxy list saved successfully");
-    } catch (err: any) {
-      toast.error("Failed to save proxy list: " + (err.message || "Unknown error"));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      toast.error("Failed to save proxy list: " + message);
     } finally {
       setIsSavingProxies(false);
     }
@@ -146,7 +147,7 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Email Address</p>
-              <p className="text-sm font-bold text-foreground/90 mt-0.5">admin@localhost</p>
+              <p className="text-sm font-bold text-foreground/90 mt-0.5">admin@localhost.local</p>
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">User Permission Role</p>
