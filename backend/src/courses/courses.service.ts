@@ -373,4 +373,55 @@ export class CoursesService {
       return [];
     }
   }
+
+  async exportCourses(format: 'csv' | 'json' = 'csv', type: 'all' | 'favorites' = 'all', userId?: string) {
+    let courses: any[] = [];
+    if (type === 'favorites' && userId) {
+      const favs = await this.prisma.favorite.findMany({
+        where: { userId },
+        include: {
+          course: {
+            include: {
+              category: true,
+              couponSources: { include: { provider: true } },
+            },
+          },
+        },
+      });
+      courses = favs.map((f) => mapCourseToResponse(f.course));
+    } else {
+      const res = await this.coursesRepository.findAll({ page: 1, limit: 1000 });
+      courses = res.data.map(mapCourseToResponse);
+    }
+
+    if (format === 'json') {
+      return {
+        data: JSON.stringify(courses, null, 2),
+        filename: `udemy-courses-${type}-${Date.now()}.json`,
+        contentType: 'application/json',
+      };
+    }
+
+    const headers = ['ID', 'Title', 'Udemy URL', 'Coupon URL', 'Category', 'Provider', 'Rating', 'Instructor', 'Created At'];
+    const rows = courses.map((c) => [
+      c.id,
+      `"${(c.title || '').replace(/"/g, '""')}"`,
+      `"${c.udemyUrl || ''}"`,
+      `"${c.couponUrl || ''}"`,
+      `"${c.category?.name || ''}"`,
+      `"${c.provider?.name || ''}"`,
+      c.rating ?? '',
+      `"${(c.instructor || '').replace(/"/g, '""')}"`,
+      c.createdAt,
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+
+    return {
+      data: csvContent,
+      filename: `udemy-courses-${type}-${Date.now()}.csv`,
+      contentType: 'text/csv',
+    };
+  }
 }
+

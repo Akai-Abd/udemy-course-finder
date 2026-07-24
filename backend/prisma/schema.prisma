@@ -39,6 +39,12 @@ enum HistoryAction {
   ENROLLED
 }
 
+enum NotificationType {
+  NEW_COURSES
+  EXPIRING_SOON
+  SYSTEM
+}
+
 // ───────────── Users ─────────────
 
 model User {
@@ -51,6 +57,10 @@ model User {
 
   favorites Favorite[]
   history   History[]
+
+  notifications          Notification[]
+  notificationPreference NotificationPreference?
+  pushSubscriptions      PushSubscription[]
 
   @@map("users")
 }
@@ -211,3 +221,47 @@ model CourseEmbedding {
 
   @@map("course_embeddings")
 }
+
+// ───────────── Notifications ─────────────
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  message   String
+  metadata  Json?
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt], name: "idx_user_notifications")
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id                 String  @id @default(uuid())
+  userId             String  @unique @map("user_id")
+  onNewCourses       Boolean @default(true) @map("on_new_courses")
+  onExpiringSoon     Boolean @default(true) @map("on_expiring_soon")
+  browserPushEnabled Boolean @default(false) @map("browser_push_enabled")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  endpoint  String   @unique
+  keys      Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], name: "idx_push_user")
+  @@map("push_subscriptions")
+}
+

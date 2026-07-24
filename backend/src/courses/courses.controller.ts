@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Query, Request } from '@nestjs/common';
+import { Controller, Get, Param, Query, Request, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -41,6 +42,27 @@ export class CoursesController {
   @ApiResponse({ status: 200, description: 'List of recommended courses' })
   async getRecommendations(@CurrentUser('id') userId: string) {
     return this.coursesService.getRecommendations(userId);
+  }
+
+  @Get('export')
+  @ApiOperation({ summary: 'Export courses (CSV or JSON)' })
+  async exportCourses(
+    @Query('format') format: 'csv' | 'json',
+    @Query('type') type: 'all' | 'favorites',
+    @CurrentUser('id') userId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.coursesService.exportCourses(
+      format || 'csv',
+      type || 'all',
+      userId,
+    );
+    res.setHeader('Content-Type', result.contentType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${result.filename}"`,
+    );
+    return result.data;
   }
 
   @Get('stats')

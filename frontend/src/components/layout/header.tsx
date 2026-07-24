@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { LogOut, User, Bell } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -13,6 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+import { NotificationBell } from "./notification-bell";
 
 export function Header() {
   const router = useRouter();
@@ -36,7 +38,7 @@ export function Header() {
   return (
     <header className="flex h-16 items-center justify-between border-b border-border/40 bg-background/60 backdrop-blur-md px-6">
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-1.5 text-xs sm:text-sm font-medium tracking-tight text-muted-foreground/60 select-none">
+        <div className="flex items-center gap-1.5 text-xs sm:text-sm font-medium tracking-tight text-muted-foreground/60">
           <span>Workspace</span>
           {breadcrumbs.map((crumb, index) => (
             <div key={index} className="flex items-center gap-1.5">
@@ -50,14 +52,7 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Simple Notification Indicator */}
-        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground relative">
-          <Bell className="h-4.5 w-4.5" />
-          <span className="absolute top-2 right-2 flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-          </span>
-        </Button>
+        <NotificationBell />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

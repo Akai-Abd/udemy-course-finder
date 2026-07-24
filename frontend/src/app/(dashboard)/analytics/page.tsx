@@ -103,7 +103,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 select-none">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {overviewCards.map((card) => (
           <Card key={card.title} className="group relative overflow-hidden bg-card/60 backdrop-blur-sm border border-border/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:bg-card/85">
             <CardContent className="p-5">
@@ -124,7 +124,7 @@ export default function AnalyticsPage() {
       {/* Time-Series Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 select-none">
+          <div className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-indigo-500" />
             <h2 className="text-lg font-bold text-foreground">Discovery Trends</h2>
           </div>
@@ -187,7 +187,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Breakdowns */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 select-none">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* By Category */}
         <Card className="rounded-2xl border-border/40 bg-card/45 backdrop-blur-sm shadow-sm hover:border-violet-500/10 transition-colors duration-300">
           <CardHeader>

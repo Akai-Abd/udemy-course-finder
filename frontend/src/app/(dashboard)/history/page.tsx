@@ -115,7 +115,7 @@ export default function HistoryPage() {
   if (error) return <ErrorState onRetry={() => refetch()} />;
 
   return (
-    <div className="space-y-8 animate-fade-in select-none">
+    <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight">History Log</h1>
@@ -178,7 +178,7 @@ export default function HistoryPage() {
       <Tabs
         value={actionFilter}
         onValueChange={(v) => setActionFilter(v as ActionFilter)}
-        className="w-full select-none"
+        className="w-full"
       >
         <TabsList className="bg-muted/30 border border-border/30 rounded-xl p-1 h-11">
           <TabsTrigger value="ALL" className="rounded-lg font-bold text-xs px-4 h-9">All Actions</TabsTrigger>

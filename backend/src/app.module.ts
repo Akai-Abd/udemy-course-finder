@@ -17,6 +17,7 @@ import { LoggerModule } from './common/logger/logger.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { EmbeddingsModule } from './embeddings/embeddings.module';
 import { SettingsModule } from './settings/settings.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SettingsModule } from './settings/settings.module';
     RedisCacheModule,
     EmbeddingsModule,
     SettingsModule,
+    NotificationsModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60000,

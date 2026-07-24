@@ -3,6 +3,8 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 
+import { NotificationsService } from '../notifications/notifications.service';
+
 @Injectable()
 export class JobsService implements OnModuleInit {
   private readonly logger = new Logger(JobsService.name);
@@ -10,6 +12,7 @@ export class JobsService implements OnModuleInit {
   constructor(
     @InjectQueue('scrape-queue') private readonly scrapeQueue: Queue,
     private readonly configService: ConfigService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async onModuleInit() {

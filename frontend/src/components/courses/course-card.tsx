@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Star, ExternalLink, Heart, Clock, Flame } from "lucide-react";
+import { Star, ExternalLink, Heart, Clock, Flame, Share2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Course } from "@/lib/api-client";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface CourseCardProps {
   course: Course;
@@ -271,6 +272,20 @@ export function CourseCard({
           >
             <ExternalLink className="h-3 w-3" />
             Get Course
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs font-semibold hover:bg-accent border-border/40 px-2.5"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              navigator.clipboard.writeText(course.couponUrl || course.udemyUrl);
+              toast.success("Course link copied to clipboard!");
+            }}
+            title="Copy course link"
+          >
+            <Share2 className="h-3.5 w-3.5" />
           </Button>
           <Button size="sm" variant="outline" className="text-xs font-semibold hover:bg-accent border-border/40" asChild>
             <Link href={`/courses/${course.id}`}>Details</Link>

@@ -190,6 +190,41 @@ def create_log_entry(
     except Exception as e:
         logger.error(f"Failed to create log entry: {e}")
 
+    if result.courses_accepted > 0:
+        _create_notifications_for_new_courses(
+            db, result.courses_accepted, result.provider_name
+        )
+
+
+def _create_notifications_for_new_courses(
+    db: Database, courses_accepted: int, provider_name: str
+) -> None:
+    """Create in-app notifications for users when new courses are added."""
+    try:
+        users = db.execute(
+            """
+            SELECT u.id FROM users u
+            LEFT JOIN notification_preferences np ON np.user_id = u.id
+            WHERE np.on_new_courses IS NULL OR np.on_new_courses = true
+            """
+        )
+        title = "🎓 New Courses Discovered!"
+        message = f"{courses_accepted} new free course(s) added from {provider_name}."
+
+        for u in users:
+            db.execute(
+                """
+                INSERT INTO notifications (id, user_id, type, title, message, is_read, created_at)
+                VALUES (gen_random_uuid(), %s, 'NEW_COURSES', %s, %s, false, NOW())
+                """,
+                (u["id"], title, message),
+            )
+        logger.info(
+            f"Created notifications for {len(users)} user(s) ({courses_accepted} new courses from {provider_name})"
+        )
+    except Exception as e:
+        logger.error(f"Failed to create notifications for new courses: {e}")
+
 
 def update_provider_status(
     db: Database,

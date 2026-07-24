@@ -20,10 +20,30 @@ export class UsersRepository {
     });
   }
 
+  async create(email: string, passwordHash: string, role: any = 'USER'): Promise<User> {
+    return this.prisma.user.create({
+      data: { email, passwordHash, role },
+    });
+  }
+
   async updatePassword(userId: string, passwordHash: string): Promise<void> {
     await this.prisma.user.update({
       where: { id: userId },
       data: { passwordHash },
     });
   }
+
+  async updateRole(userId: string, role: any): Promise<User> {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { role },
+    });
+  }
+
+  async delete(userId: string): Promise<void> {
+    await this.prisma.user.delete({
+      where: { id: userId },
+    });
+  }
 }
+

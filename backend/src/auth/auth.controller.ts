@@ -17,7 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { LoginDto, TokenResponseDto, RefreshTokenDto } from './dto';
+import { LoginDto, TokenResponseDto, RefreshTokenDto, RegisterDto } from './dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Public } from '../common/decorators';
 import { CurrentUser } from '../common/decorators';
@@ -37,6 +37,17 @@ export class AuthController {
   @ApiResponse({ status: 429, description: 'Too many login attempts' })
   async login(@Body() loginDto: LoginDto): Promise<TokenResponseDto> {
     return this.authService.login(loginDto);
+  }
+
+  @Public()
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @ApiOperation({ summary: 'Register a new user account' })
+  @ApiResponse({ status: 201, type: TokenResponseDto })
+  @ApiResponse({ status: 400, description: 'User already exists' })
+  async register(@Body() registerDto: RegisterDto): Promise<TokenResponseDto> {
+    return this.authService.register(registerDto);
   }
 
   @Public()

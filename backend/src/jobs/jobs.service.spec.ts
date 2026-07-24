@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { getQueueToken } from '@nestjs/bullmq';
 import { JobsService } from './jobs.service';
 
+import { NotificationsService } from '../notifications/notifications.service';
+
 describe('JobsService', () => {
   let service: JobsService;
   let mockQueue: any;
@@ -27,6 +29,13 @@ describe('JobsService', () => {
         {
           provide: ConfigService,
           useValue: { get: jest.fn().mockReturnValue(30) },
+        },
+        {
+          provide: NotificationsService,
+          useValue: {
+            notifyNewCourses: jest.fn(),
+            notifyExpiringSoon: jest.fn(),
+          },
         },
       ],
     }).compile();

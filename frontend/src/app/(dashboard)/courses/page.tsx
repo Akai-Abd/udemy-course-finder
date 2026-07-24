@@ -16,6 +16,7 @@ import { useFavorites, useToggleFavorite } from "@/lib/hooks/use-favorites";
 import { useRecordHistory } from "@/lib/hooks/use-history";
 import { CourseCard } from "@/components/courses/course-card";
 import { CourseFilters } from "@/components/courses/course-filters";
+import { ExportButton } from "@/components/courses/export-button";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
@@ -137,7 +138,7 @@ export default function CoursesPage() {
       </div>
 
       {/* Search, Sort, View Toggle controls */}
-      <div className="flex flex-col md:flex-row gap-4 bg-card/45 border border-border/30 p-4 rounded-2xl backdrop-blur-sm shadow-sm select-none">
+      <div className="flex flex-col md:flex-row gap-4 bg-card/45 border border-border/30 p-4 rounded-2xl backdrop-blur-sm shadow-sm">
         <div className="relative flex-1 flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
@@ -217,6 +218,8 @@ export default function CoursesPage() {
               <span>List</span>
             </Button>
           </div>
+
+          <ExportButton type="all" />
         </div>
       </div>
 

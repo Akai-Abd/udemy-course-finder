@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, Shield, Database, Info, Clock, KeyRound, Loader2, Globe } from "lucide-react";
+import { User, Shield, Database, Info, Clock, KeyRound, Loader2, Globe, Bell, Users, Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
+import { Switch } from "@/components/ui/switch";
 import {
   Card,
   CardContent,
@@ -13,13 +15,20 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { authApi, settingsApi } from "@/lib/api-client";
+import { useNotificationPreferences, useUpdateNotificationPreferences } from "@/lib/hooks/use-notifications";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChanging, setIsChanging] = useState(false);
+
+  const { data: pref } = useNotificationPreferences();
+  const updatePref = useUpdateNotificationPreferences();
 
   const [proxies, setProxies] = useState("");
   const [isSavingProxies, setIsSavingProxies] = useState(false);
@@ -126,7 +135,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-3xl animate-fade-in select-none">
+    <div className="space-y-6 max-w-3xl animate-fade-in">
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight">Settings</h1>
         <p className="text-muted-foreground mt-1 text-sm font-medium">
@@ -144,7 +153,7 @@ export default function SettingsPage() {
           <CardDescription className="text-xs text-muted-foreground/80">Your profile credentials info</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Email Address</p>
               <p className="text-sm font-bold text-foreground/90 mt-0.5">admin@localhost.local</p>
@@ -153,6 +162,50 @@ export default function SettingsPage() {
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">User Permission Role</p>
               <Badge variant="secondary" className="mt-0.5 text-[10px] font-extrabold bg-primary/10 text-primary border border-primary/10">Admin</Badge>
             </div>
+            <div>
+              <Button variant="outline" size="sm" className="h-9 text-xs font-bold rounded-xl border-border/40 gap-1.5" asChild>
+                <Link href="/admin/users">
+                  <Users className="h-3.5 w-3.5 text-indigo-500" />
+                  Manage Users
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notifications */}
+      <Card className="border border-border/30 bg-card/45 backdrop-blur-sm shadow-sm rounded-2xl">
+        <CardHeader>
+          <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground/90">
+            <Bell className="h-4.5 w-4.5 text-indigo-500" />
+            Notification Preferences
+          </CardTitle>
+          <CardDescription className="text-xs text-muted-foreground/80">
+            Configure how and when you receive course updates and alerts
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-3 rounded-xl bg-background/50 border border-border/30">
+            <div>
+              <p className="text-xs font-bold text-foreground/90">New Courses Discovered</p>
+              <p className="text-[10px] text-muted-foreground font-medium">Receive alerts when new free courses are ingested</p>
+            </div>
+            <Switch
+              checked={pref?.onNewCourses ?? true}
+              onCheckedChange={(val) => updatePref.mutate({ onNewCourses: val })}
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-xl bg-background/50 border border-border/30">
+            <div>
+              <p className="text-xs font-bold text-foreground/90">Expiring Coupons Alert</p>
+              <p className="text-[10px] text-muted-foreground font-medium">Alert when favorited courses are within 6h of expiry</p>
+            </div>
+            <Switch
+              checked={pref?.onExpiringSoon ?? true}
+              onCheckedChange={(val) => updatePref.mutate({ onExpiringSoon: val })}
+            />
           </div>
         </CardContent>
       </Card>
@@ -207,30 +260,52 @@ export default function SettingsPage() {
               <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80" htmlFor="current-password">
                 Current Password
               </label>
-              <input
-                id="current-password"
-                type="password"
-                autoComplete="current-password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                required
-                className="w-full rounded-xl border border-border/40 bg-background/50 px-3 py-2 text-sm shadow-sm transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary focus:shadow-primary/5 font-semibold"
-              />
+              <div className="relative">
+                <input
+                  id="current-password"
+                  type={showCurrentPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                  className="w-full rounded-xl border border-border/40 bg-background/50 px-3 py-2 pr-10 text-sm shadow-sm transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary focus:shadow-primary/5 font-semibold"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                  tabIndex={-1}
+                  aria-label={showCurrentPassword ? "Hide current password" : "Show current password"}
+                >
+                  {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80" htmlFor="new-password">
                 New Password
               </label>
-              <input
-                id="new-password"
-                type="password"
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-                minLength={8}
-                className="w-full rounded-xl border border-border/40 bg-background/50 px-3 py-2 text-sm shadow-sm transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary focus:shadow-primary/5 font-semibold"
-              />
+              <div className="relative">
+                <input
+                  id="new-password"
+                  type={showNewPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  className="w-full rounded-xl border border-border/40 bg-background/50 px-3 py-2 pr-10 text-sm shadow-sm transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary focus:shadow-primary/5 font-semibold"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                  tabIndex={-1}
+                  aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               <p className="text-[10px] text-muted-foreground font-semibold leading-relaxed">
                 Requires at least 8 characters containing uppercase, lowercase, and numeric digits.
               </p>
@@ -239,15 +314,26 @@ export default function SettingsPage() {
               <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80" htmlFor="confirm-password">
                 Confirm New Password
               </label>
-              <input
-                id="confirm-password"
-                type="password"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className="w-full rounded-xl border border-border/40 bg-background/50 px-3 py-2 text-sm shadow-sm transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary focus:shadow-primary/5 font-semibold"
-              />
+              <div className="relative">
+                <input
+                  id="confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  className="w-full rounded-xl border border-border/40 bg-background/50 px-3 py-2 pr-10 text-sm shadow-sm transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary focus:shadow-primary/5 font-semibold"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                  tabIndex={-1}
+                  aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <Button
               type="submit"

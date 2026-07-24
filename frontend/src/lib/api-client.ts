@@ -81,6 +81,8 @@ apiClient.interceptors.response.use(
 export const authApi = {
   login: (email: string, password: string) =>
     apiClient.post<{ accessToken: string; refreshToken: string }>("/auth/login", { email, password }),
+  register: (email: string, password: string) =>
+    apiClient.post<{ accessToken: string; refreshToken: string }>("/auth/register", { email, password }),
   refresh: (refreshToken: string) =>
     apiClient.post<{ accessToken: string; refreshToken: string }>("/auth/refresh", { refreshToken }),
   logout: () => apiClient.post("/auth/logout"),
@@ -270,4 +272,58 @@ export const settingsApi = {
   update: (key: string, value: string) =>
     apiClient.patch<{ key: string; value: string }>(`/settings/${key}`, { value }),
 };
+
+// Notifications
+export interface NotificationItem {
+  id: string;
+  userId: string;
+  type: "NEW_COURSES" | "EXPIRING_SOON" | "SYSTEM";
+  title: string;
+  message: string;
+  metadata?: Record<string, unknown>;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface NotificationPreference {
+  id: string;
+  userId: string;
+  onNewCourses: boolean;
+  onExpiringSoon: boolean;
+  browserPushEnabled: boolean;
+}
+
+export const notificationsApi = {
+  list: (page = 1, limit = 20) =>
+    apiClient.get<PaginatedResponse<NotificationItem>>("/notifications", { params: { page, limit } }),
+  getUnreadCount: () => apiClient.get<{ count: number }>("/notifications/unread-count"),
+  markRead: (id: string) => apiClient.patch(`/notifications/${id}/read`),
+  markAllRead: () => apiClient.patch("/notifications/read-all"),
+  delete: (id: string) => apiClient.delete(`/notifications/${id}`),
+  getPreferences: () => apiClient.get<NotificationPreference>("/notifications/preferences"),
+  updatePreferences: (data: Partial<NotificationPreference>) =>
+    apiClient.patch<NotificationPreference>("/notifications/preferences", data),
+};
+
+// Users (Admin)
+export interface UserItem {
+  id: string;
+  email: string;
+  role: "ADMIN" | "USER";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const usersApi = {
+  list: () => apiClient.get<UserItem[]>("/users"),
+  updateRole: (id: string, role: "ADMIN" | "USER") =>
+    apiClient.patch<UserItem>(`/users/${id}/role`, { role }),
+  delete: (id: string) => apiClient.delete(`/users/${id}`),
+};
+
+// Export
+export const getExportUrl = (format: "csv" | "json", type: "all" | "favorites" = "all") => {
+  return `${API_BASE_URL}/courses/export?format=${format}&type=${type}`;
+};
+
 

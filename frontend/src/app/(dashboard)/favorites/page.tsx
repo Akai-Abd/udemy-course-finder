@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useFavorites, useToggleFavorite } from "@/lib/hooks/use-favorites";
 import { CourseCard } from "@/components/courses/course-card";
+import { ExportButton } from "@/components/courses/export-button";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
@@ -94,7 +95,7 @@ export default function FavoritesPage() {
   if (error) return <ErrorState onRetry={() => refetch()} />;
 
   return (
-    <div className="space-y-6 animate-fade-in select-none">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight">Favorites</h1>
@@ -151,6 +152,8 @@ export default function FavoritesPage() {
               Hide expired courses
             </Label>
           </div>
+
+          <ExportButton type="favorites" />
         </div>
       )}
 

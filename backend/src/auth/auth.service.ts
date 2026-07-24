@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
 import { v4 as uuidv4 } from 'uuid';
 import { UsersService } from '../users/users.service';
-import { LoginDto, TokenResponseDto } from './dto';
+import { LoginDto, TokenResponseDto, RegisterDto } from './dto';
 import { TokenBlacklistService } from './token-blacklist.service';
 import type { StringValue } from 'ms';
 
@@ -51,6 +51,19 @@ export class AuthService {
     }
 
     this.logger.log(`User ${user.email} logged in`);
+    return this.generateTokens(user.id, user.email, user.role);
+  }
+
+  async register(registerDto: RegisterDto): Promise<TokenResponseDto> {
+    const existing = await this.usersService.findByEmail(registerDto.email);
+    if (existing) {
+      throw new BadRequestException('User with this email already exists');
+    }
+
+    const passwordHash = await argon2.hash(registerDto.password);
+    const user = await this.usersService.create(registerDto.email, passwordHash, 'USER');
+
+    this.logger.log(`User ${user.email} registered`);
     return this.generateTokens(user.id, user.email, user.role);
   }
 
