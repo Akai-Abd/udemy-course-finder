@@ -51,7 +51,7 @@ export function Sidebar() {
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 px-4 border-b border-border/40">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-md shadow-indigo-500/10 animate-float">
-            <Image src="/icon.png" alt="Udemy Finder Logo" width={36} height={36} className="h-full w-full object-cover" />
+            <Image src="/icon.png" alt="Udemy Finder Logo" width={36} height={36} className="h-full w-full object-cover" priority />
           </div>
           {!collapsed && (
             <div className="flex flex-col animate-fade-in">

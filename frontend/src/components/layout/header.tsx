@@ -74,7 +74,7 @@ export function Header() {
             <SheetHeader className="p-4 border-b border-border/40 text-left">
               <SheetTitle className="flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-md shadow-indigo-500/10">
-                  <Image src="/icon.png" alt="Udemy Finder Logo" width={36} height={36} className="h-full w-full object-cover" />
+                  <Image src="/icon.png" alt="Udemy Finder Logo" width={36} height={36} className="h-full w-full object-cover" priority />
                 </div>
                 <div className="flex flex-col text-left">
                   <span className="font-bold text-sm tracking-tight gradient-text">Udemy Finder</span>
