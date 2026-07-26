@@ -46,8 +46,8 @@ Before installing, ensure your host environment has:
 - **Node.js**: v18.x or v20+ (`node -v`)
 - **npm**: v9+ (`npm -v`)
 - **Python**: 3.10+ (`python3 --version`)
-- **C/C++ Build Tools** (required for compiling native packages `argon2` and `better-sqlite3`):
-  - **Linux (Debian/Ubuntu)**: `sudo apt update && sudo apt install -y build-essential python3`
+- **C/C++ Build Tools** (required for compiling native packages `argon2`, `better-sqlite3`, and native bindings for `onnxruntime-node`):
+  - **Linux (Debian/Ubuntu)**: `sudo apt update && sudo apt install -y build-essential` *(install `python3` too if not already installed)*
   - **macOS**: `xcode-select --install`
   - **Windows**: `npm install --global windows-build-tools` or install Visual Studio C++ Build Tools.
 - *(Optional for Production Mode)*: **Docker & Docker Compose**
@@ -76,12 +76,23 @@ No Docker, PostgreSQL, or Redis required.
 cd backend
 cp .env.example .env
 npm install
-npm install-scripts approve --all  # Approve lifecycle scripts (npm v10+)
+
+# 1. Allow npm v10+ lifecycle scripts
+npm install-scripts approve --all
+
+# 2. Rebuild ONNX native binary for local AI embeddings
+npm rebuild onnxruntime-node
+
 npx prisma generate                # Generate Prisma Client types
 npm run build                      # Verify build output
+
+# 3. Start backend (requires active internet for 1st model download)
 npm run start:sqlite
 ```
 > `npm run start:sqlite` automatically sets `DATABASE_URL="file:./dev.db"` and `ENABLE_REDIS="false"`, syncs the SQLite database, seeds default categories/admin, and starts NestJS at `http://localhost:4000`.
+
+> [!NOTE]
+> On first launch, NestJS initializes a local Hugging Face embedding pipeline (`Xenova/all-MiniLM-L6-v2`) for semantic search. Ensure active internet connection on initial startup to download the ~90MB ONNX model. If you get `Failed to initialize embedding pipeline`, run `npm install-scripts approve --all && npm rebuild onnxruntime-node`.
 
 **Step 2: Set up Frontend (in a new terminal)**
 ```bash
@@ -90,7 +101,7 @@ cp .env.example .env
 npm install
 npm install-scripts approve --all  # Approve lifecycle scripts (npm v10+)
 npm run build                      # Build Next.js production bundle
-npm run dev        # Or npm run start for production server
+npm run dev                        # Or npm run start for production server
 ```
 > Frontend will open at `http://localhost:3000` connected to `http://localhost:4000`.
 
