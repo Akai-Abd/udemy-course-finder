@@ -165,6 +165,14 @@ If you encounter issues during installation or runtime, refer to the resolutions
 - **Fix**: Ensure `BACKEND_PORT=4000` and `NEXT_PUBLIC_API_URL=http://localhost:4000` match in `.env`.
 </details>
 
+<details>
+<summary><b>7. Interactive Database Push Confirmation Prompt</b></summary>
+
+- **Symptom**: Terminal prompts `There might be data loss... Do you want to continue? (y/N)` when running `npm run start:sqlite`.
+- **Cause**: `prisma db push` prompts for user confirmation if non-destructive changes cannot be made automatically or if SQLite `dev.db` schema changes.
+- **Fix**: Type `y` and press `Enter` to allow Prisma to sync the local SQLite `dev.db` schema.
+</details>
+
 ---
 
 ## ✨ Features
