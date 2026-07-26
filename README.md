@@ -76,7 +76,9 @@ No Docker, PostgreSQL, or Redis required.
 cd backend
 cp .env.example .env
 npm install
-npm run build      # Verify build output
+npm install-scripts approve --all  # Approve lifecycle scripts (npm v10+)
+npx prisma generate                # Generate Prisma Client types
+npm run build                      # Verify build output
 npm run start:sqlite
 ```
 > `npm run start:sqlite` automatically sets `DATABASE_URL="file:./dev.db"` and `ENABLE_REDIS="false"`, syncs the SQLite database, seeds default categories/admin, and starts NestJS at `http://localhost:4000`.
@@ -86,7 +88,8 @@ npm run start:sqlite
 cd frontend
 cp .env.example .env
 npm install
-npm run build      # Build Next.js production bundle
+npm install-scripts approve --all  # Approve lifecycle scripts (npm v10+)
+npm run build                      # Build Next.js production bundle
 npm run dev        # Or npm run start for production server
 ```
 > Frontend will open at `http://localhost:3000` connected to `http://localhost:4000`.
@@ -173,6 +176,41 @@ If you encounter issues during installation or runtime, refer to the resolutions
 - **Symptom**: Terminal prompts `There might be data loss... Do you want to continue? (y/N)` when running `npm run start:sqlite`.
 - **Cause**: `prisma db push` prompts for user confirmation if non-destructive changes cannot be made automatically or if SQLite `dev.db` schema changes.
 - **Fix**: Type `y` and press `Enter` to allow Prisma to sync the local SQLite `dev.db` schema.
+</details>
+
+<details>
+<summary><b>8. npm warn install-scripts (Blocked Package Scripts)</b></summary>
+
+- **Symptom**: `npm warn install-scripts 7 packages have install scripts blocked...`
+- **Cause**: npm v10/v11+ restricts execution of package lifecycle scripts (`sharp`, `onnxruntime-node`, etc.) by default.
+- **Fix**: Run `npm install-scripts approve --all` inside `backend/` and `frontend/`.
+</details>
+
+<details>
+<summary><b>9. TypeScript Errors: Module '"@prisma/client"' has no exported member 'PrismaClient' / Property 'X' does not exist on type 'PrismaService'</b></summary>
+
+- **Symptom**: TS2305 and TS2339 errors during `npm run build`.
+- **Cause**: Prisma Client artifacts have not been generated yet.
+- **Fix**: Run `npx prisma generate` inside `backend/`.
+</details>
+
+<details>
+<summary><b>10. Frontend "Network Error" on Login or API Requests</b></summary>
+
+- **Symptom**: Browser or dashboard displays `Network Error` when attempting login or fetching courses.
+- **Cause**: Backend server is not running on port 4000, or `NEXT_PUBLIC_API_URL` environment variable was updated while Next.js dev server was active.
+- **Fix**:
+  1. Ensure NestJS backend is running via `npm run start:sqlite` or `npm run start:dev` inside `backend/`.
+  2. Verify `NEXT_PUBLIC_API_URL=http://localhost:4000` is set in `frontend/.env`.
+  3. Restart Next.js dev server (`Ctrl+C` and run `npm run dev`) so environment variables reload.
+</details>
+
+<details>
+<summary><b>11. Embedding Pipeline Initialization Error</b></summary>
+
+- **Symptom**: `ERROR: ❌ Failed to initialize embedding pipeline:` on backend startup.
+- **Cause**: Native bindings for `onnxruntime-node` were blocked during install or require rebuilding.
+- **Fix**: Run `npm rebuild onnxruntime-node` inside `backend/`.
 </details>
 
 ---
