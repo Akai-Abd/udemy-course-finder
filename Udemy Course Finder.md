@@ -764,4 +764,4 @@ The scraper supports rotating HTTP proxies:
 
 ---
 
-*Built by Akai for lifelong learners.*
+*Built by ABDURRAHMAN for lifelong learners.*
