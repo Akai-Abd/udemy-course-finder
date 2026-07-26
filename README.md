@@ -38,52 +38,132 @@ graph LR
 
 ---
 
-## 🚀 Quick Start
+## 📖 Installation & Setup Guide
 
-### Docker Compose (Production)
+### 📋 Prerequisites
 
-Get the entire stack running in under 5 minutes:
+Before installing, ensure your host environment has:
+- **Node.js**: v18.x or v20+ (`node -v`)
+- **npm**: v9+ (`npm -v`)
+- **Python**: 3.10+ (`python3 --version`)
+- **C/C++ Build Tools** (required for compiling native packages `argon2` and `better-sqlite3`):
+  - **Linux (Debian/Ubuntu)**: `sudo apt update && sudo apt install -y build-essential python3`
+  - **macOS**: `xcode-select --install`
+  - **Windows**: `npm install --global windows-build-tools` or install Visual Studio C++ Build Tools.
+- *(Optional for Production Mode)*: **Docker & Docker Compose**
+
+---
+
+### 🚀 Step-by-Step Installation
+
+#### 1️⃣ Clone the Repository
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/Akai-Abd/udemy-course-finder.git
 cd udemy-course-finder
-
-# 2. Copy and configure environment variables
-cp .env.example .env
-# Edit .env: set POSTGRES_PASSWORD, JWT_SECRET, JWT_REFRESH_SECRET
-
-# 3. Start all services in the background
-docker compose up -d
 ```
 
-> Database migrations and seed data run automatically on first startup.
+#### 2️⃣ Choose Setup Mode
 
-🎉 **You're done!** Open [http://localhost:3001](http://localhost:3001) in your browser.
+---
 
-### Local Development (SQLite)
+#### Mode A: Standalone Local Setup (SQLite — Recommended for Development)
 
-For local development without Docker/PostgreSQL/Redis:
+No Docker, PostgreSQL, or Redis required.
 
+**Step 1: Set up Backend**
 ```bash
-# Terminal 1: Backend (SQLite mode)
 cd backend
+cp .env.example .env
 npm install
 npm run start:sqlite
+```
+> `npm run start:sqlite` automatically sets `DATABASE_URL="file:./dev.db"` and `ENABLE_REDIS="false"`, syncs the SQLite database, seeds default categories/admin, and starts NestJS at `http://localhost:4000`.
 
-# Terminal 2: Frontend
+**Step 2: Set up Frontend (in a new terminal)**
+```bash
 cd frontend
+cp .env.example .env
 npm install
 npm run dev
 ```
+> Frontend will open at `http://localhost:3000` connected to `http://localhost:4000`.
 
-> SQLite mode uses a local `dev.db` file — no external database required.
+---
 
-🎉 Open [http://localhost:3000](http://localhost:3000) in your browser.
+#### Mode B: Docker Compose (PostgreSQL + Redis — Full Stack)
 
-> **Default Admin Credentials:**
-> - **Email:** `admin@localhost.local`
-> - **Password:** `ChangeMe123!`
+```bash
+# Copy root environment variables
+cp .env.example .env
+
+# Build and start all 5 containers
+docker compose up -d
+```
+> Services will be available at:
+> - **Frontend Dashboard**: `http://localhost:3001`
+> - **Backend API & Swagger**: `http://localhost:4001/api`
+
+---
+
+### 🔑 Default Credentials
+
+- **Admin Email**: `admin@localhost.local`
+- **Admin Password**: `ChangeMe123!`
+
+---
+
+## 🛠️ Troubleshooting & Known Issues
+
+If you encounter issues during installation or runtime, refer to the resolutions below:
+
+<details>
+<summary><b>1. PrismaClientInitializationError / Environment Variable Missing</b></summary>
+
+- **Symptom**: `Environment variable not found: DATABASE_URL` or `secretOrPrivateKey must have a value`.
+- **Cause**: `.env` file not created in backend/frontend directory.
+- **Fix**: Run `cp .env.example .env` inside both `backend/` and `frontend/`.
+</details>
+
+<details>
+<summary><b>2. Database Connection Failure (P1001: Can't reach database server at 5432)</b></summary>
+
+- **Symptom**: `P1001: Can't reach database server at localhost:5432`.
+- **Cause**: Prisma default schema uses PostgreSQL when Postgres is not running.
+- **Fix**: For local development without Postgres, run `npm run start:sqlite` inside `backend/`.
+</details>
+
+<details>
+<summary><b>3. Redis ECONNREFUSED Error</b></summary>
+
+- **Symptom**: `[IORedis] Error: connect ECONNREFUSED 127.0.0.1:6379`.
+- **Cause**: Redis service is not active locally.
+- **Fix**: Ensure `ENABLE_REDIS="false"` is set in `backend/.env` for standalone execution.
+</details>
+
+<details>
+<summary><b>4. Missing Compiled Seed File (MODULE_NOT_FOUND dist/prisma/seed.js)</b></summary>
+
+- **Symptom**: `Cannot find module '.../dist/prisma/seed.js'`.
+- **Cause**: Seeding before compiling the NestJS build output.
+- **Fix**: Updated seed execution to use `ts-node prisma/seed.ts` via `npm run db:sqlite:setup` or `npx prisma db seed`.
+</details>
+
+<details>
+<summary><b>5. Native Module Compilation Error (node-gyp / make error)</b></summary>
+
+- **Symptom**: `gyp ERR! stack Error: make failed with exit code: 2` during `npm install`.
+- **Cause**: Missing C/C++ compiler for `argon2` / `better-sqlite3`.
+- **Fix**: Install OS build tools (`build-essential` on Linux, Xcode command line tools on macOS).
+</details>
+
+<details>
+<summary><b>6. CORS Error or Frontend API Request Blocked</b></summary>
+
+- **Symptom**: `Access to fetch at ... has been blocked by CORS policy`.
+- **Cause**: Port mismatch between `BACKEND_PORT` and `NEXT_PUBLIC_API_URL`.
+- **Fix**: Ensure `BACKEND_PORT=4000` and `NEXT_PUBLIC_API_URL=http://localhost:4000` match in `.env`.
+</details>
 
 ---
 
@@ -143,7 +223,7 @@ The scraper engine currently supports the following **10 providers** (with modul
 
 ## 🔌 API Endpoints
 
-The backend exposes a full REST API (Swagger docs at `http://localhost:4001/api`):
+The backend exposes a full REST API (Swagger docs at `http://localhost:4000/api`):
 
 | Module | Endpoints | Description |
 |--------|-----------|-------------|
