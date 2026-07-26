@@ -6,20 +6,31 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RedisCacheService } from '../common/cache/redis-cache.service';
 import { EmbeddingsService } from '../embeddings/embeddings.service';
 
-export function mapCourseToResponse(course: any): any {
+export function mapCourseToResponse(course: any, targetProviderId?: string): any {
   if (!course) return null;
-  const activeSources =
-    course.couponSources?.filter(
-      (s: any) =>
-        s.isActive &&
-        s.isFree &&
-        (!s.expiresAt || new Date(s.expiresAt) >= new Date()),
-    ) || [];
 
-  const source =
-    activeSources.length > 0
-      ? activeSources[0]
-      : course.couponSources?.[0] || {};
+  let source = null;
+
+  if (targetProviderId) {
+    source = course.couponSources?.find(
+      (s: any) => s.providerId === targetProviderId,
+    );
+  }
+
+  if (!source) {
+    const activeSources =
+      course.couponSources?.filter(
+        (s: any) =>
+          s.isActive &&
+          s.isFree &&
+          (!s.expiresAt || new Date(s.expiresAt) >= new Date()),
+      ) || [];
+
+    source =
+      activeSources.length > 0
+        ? activeSources[0]
+        : course.couponSources?.[0] || {};
+  }
 
   return {
     id: course.id,
@@ -75,10 +86,11 @@ export class CoursesService {
       providerId: dto.providerId,
       sortBy: dto.sortBy ?? dto.sort,
       expiryStatus: dto.expiryStatus,
+      language: dto.language,
     });
     return {
       ...result,
-      data: result.data.map(mapCourseToResponse),
+      data: result.data.map((c) => mapCourseToResponse(c, dto.providerId)),
     };
   }
 
@@ -100,10 +112,11 @@ export class CoursesService {
       providerId: dto.providerId,
       sortBy: dto.sortBy ?? dto.sort,
       expiryStatus: dto.expiryStatus,
+      language: dto.language,
     });
     return {
       ...result,
-      data: result.data.map(mapCourseToResponse),
+      data: result.data.map((c) => mapCourseToResponse(c, dto.providerId)),
     };
   }
 
@@ -241,7 +254,7 @@ export class CoursesService {
       recommended = [...recommended, ...backfill];
     }
 
-    return recommended.map(mapCourseToResponse);
+    return recommended.map((c) => mapCourseToResponse(c));
   }
 
   async semanticSearch(
@@ -315,7 +328,7 @@ export class CoursesService {
       const total = await this.prisma.courseEmbedding.count();
 
       return {
-        data: sortedCourses.map(mapCourseToResponse),
+        data: sortedCourses.map((c) => mapCourseToResponse(c, dto.providerId)),
         total,
         page,
         limit,
@@ -368,7 +381,7 @@ export class CoursesService {
           };
         })
         .filter(Boolean)
-        .map(mapCourseToResponse);
+        .map((c) => mapCourseToResponse(c));
     } catch {
       return [];
     }
@@ -391,7 +404,7 @@ export class CoursesService {
       courses = favs.map((f) => mapCourseToResponse(f.course));
     } else {
       const res = await this.coursesRepository.findAll({ page: 1, limit: 1000 });
-      courses = res.data.map(mapCourseToResponse);
+      courses = res.data.map((c) => mapCourseToResponse(c));
     }
 
     if (format === 'json') {

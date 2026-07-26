@@ -77,20 +77,44 @@ export class AnalyticsService {
     return result;
   }
 
+  private get isSqlite(): boolean {
+    return (process.env.DATABASE_URL || '').startsWith('file:');
+  }
+
+  private formatDate(dateVal: Date | string): string {
+    if (!dateVal) return '';
+    if (dateVal instanceof Date) {
+      return dateVal.toISOString().split('T')[0];
+    }
+    const str = String(dateVal);
+    return str.includes('T') ? str.split('T')[0] : str.slice(0, 10);
+  }
+
   private async getCoursesPerDay(
     startDate: Date,
   ): Promise<{ date: string; count: number }[]> {
-    const results: { date: Date; count: bigint }[] = await this.prisma
-      .$queryRaw`
-      SELECT DATE_TRUNC('day', created_at) as date, COUNT(*)::bigint as count
-      FROM courses
-      WHERE created_at >= ${startDate}
-      GROUP BY DATE_TRUNC('day', created_at)
-      ORDER BY date ASC
-    `;
+    let results: { date: Date | string; count: bigint | number }[];
+
+    if (this.isSqlite) {
+      results = await this.prisma.$queryRaw`
+        SELECT strftime('%Y-%m-%d', created_at) as date, COUNT(*) as count
+        FROM courses
+        WHERE created_at >= ${startDate}
+        GROUP BY strftime('%Y-%m-%d', created_at)
+        ORDER BY date ASC
+      `;
+    } else {
+      results = await this.prisma.$queryRaw`
+        SELECT DATE_TRUNC('day', created_at) as date, COUNT(*)::bigint as count
+        FROM courses
+        WHERE created_at >= ${startDate}
+        GROUP BY DATE_TRUNC('day', created_at)
+        ORDER BY date ASC
+      `;
+    }
 
     return results.map((r) => ({
-      date: r.date.toISOString().split('T')[0],
+      date: this.formatDate(r.date),
       count: Number(r.count),
     }));
   }
@@ -98,21 +122,40 @@ export class AnalyticsService {
   private async getCoursesByProviderPerDay(
     startDate: Date,
   ): Promise<{ date: string; provider: string; count: number }[]> {
-    const results: { date: Date; provider_name: string; count: bigint }[] =
-      await this.prisma.$queryRaw`
-      SELECT 
-        DATE_TRUNC('day', cs.created_at) as date, 
-        p.name as provider_name,
-        COUNT(*)::bigint as count
-      FROM coupon_sources cs
-      JOIN providers p ON cs.provider_id = p.id
-      WHERE cs.created_at >= ${startDate}
-      GROUP BY DATE_TRUNC('day', cs.created_at), p.name
-      ORDER BY date ASC, p.name ASC
-    `;
+    let results: {
+      date: Date | string;
+      provider_name: string;
+      count: bigint | number;
+    }[];
+
+    if (this.isSqlite) {
+      results = await this.prisma.$queryRaw`
+        SELECT 
+          strftime('%Y-%m-%d', cs.created_at) as date, 
+          p.name as provider_name,
+          COUNT(*) as count
+        FROM coupon_sources cs
+        JOIN providers p ON cs.provider_id = p.id
+        WHERE cs.created_at >= ${startDate}
+        GROUP BY strftime('%Y-%m-%d', cs.created_at), p.name
+        ORDER BY date ASC, p.name ASC
+      `;
+    } else {
+      results = await this.prisma.$queryRaw`
+        SELECT 
+          DATE_TRUNC('day', cs.created_at) as date, 
+          p.name as provider_name,
+          COUNT(*)::bigint as count
+        FROM coupon_sources cs
+        JOIN providers p ON cs.provider_id = p.id
+        WHERE cs.created_at >= ${startDate}
+        GROUP BY DATE_TRUNC('day', cs.created_at), p.name
+        ORDER BY date ASC, p.name ASC
+      `;
+    }
 
     return results.map((r) => ({
-      date: r.date.toISOString().split('T')[0],
+      date: this.formatDate(r.date),
       provider: r.provider_name,
       count: Number(r.count),
     }));
@@ -121,25 +164,40 @@ export class AnalyticsService {
   private async getScrapingRunsPerDay(
     startDate: Date,
   ): Promise<{ date: string; success: number; failed: number }[]> {
-    const results: {
-      date: Date;
-      success_count: bigint;
-      failed_count: bigint;
-    }[] = await this.prisma.$queryRaw`
-      SELECT 
-        DATE_TRUNC('day', started_at) as date,
-        COUNT(*) FILTER (WHERE status = 'SUCCESS')::bigint as success_count,
-        COUNT(*) FILTER (WHERE status = 'FAILED')::bigint as failed_count
-      FROM logs
-      WHERE started_at >= ${startDate}
-      GROUP BY DATE_TRUNC('day', started_at)
-      ORDER BY date ASC
-    `;
+    let results: {
+      date: Date | string;
+      success_count: bigint | number;
+      failed_count: bigint | number;
+    }[];
+
+    if (this.isSqlite) {
+      results = await this.prisma.$queryRaw`
+        SELECT 
+          strftime('%Y-%m-%d', started_at) as date,
+          SUM(CASE WHEN status = 'SUCCESS' THEN 1 ELSE 0 END) as success_count,
+          SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) as failed_count
+        FROM logs
+        WHERE started_at >= ${startDate}
+        GROUP BY strftime('%Y-%m-%d', started_at)
+        ORDER BY date ASC
+      `;
+    } else {
+      results = await this.prisma.$queryRaw`
+        SELECT 
+          DATE_TRUNC('day', started_at) as date,
+          COUNT(*) FILTER (WHERE status = 'SUCCESS')::bigint as success_count,
+          COUNT(*) FILTER (WHERE status = 'FAILED')::bigint as failed_count
+        FROM logs
+        WHERE started_at >= ${startDate}
+        GROUP BY DATE_TRUNC('day', started_at)
+        ORDER BY date ASC
+      `;
+    }
 
     return results.map((r) => ({
-      date: r.date.toISOString().split('T')[0],
-      success: Number(r.success_count),
-      failed: Number(r.failed_count),
+      date: this.formatDate(r.date),
+      success: Number(r.success_count ?? 0),
+      failed: Number(r.failed_count ?? 0),
     }));
   }
 

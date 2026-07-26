@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { GraduationCap, Loader2, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { authApi } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,8 +63,8 @@ export default function RegisterPage() {
 
       <Card className="w-full max-w-md border border-border/30 bg-card/45 backdrop-blur-md shadow-2xl animate-fade-in rounded-2xl">
         <CardHeader className="text-center space-y-4 pb-4">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-primary/20 animate-pulse-glow">
-            <GraduationCap className="h-7 w-7 text-white" />
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl overflow-hidden shadow-lg shadow-primary/20 animate-pulse-glow">
+            <Image src="/icon.png" alt="Udemy Finder Logo" width={56} height={56} className="h-full w-full object-cover" />
           </div>
           <div>
             <CardTitle className="text-2xl font-black tracking-tight text-foreground/90">Create an account</CardTitle>

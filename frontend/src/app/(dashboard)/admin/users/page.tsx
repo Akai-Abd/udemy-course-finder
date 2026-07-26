@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { Users, Shield, Trash2, UserCheck, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -106,8 +107,12 @@ export default function AdminUsersPage() {
                 className="flex items-center justify-between p-3.5 rounded-xl border border-border/30 bg-muted/10 transition-colors hover:bg-muted/30"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xs">
-                    {u.email.charAt(0).toUpperCase()}
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden bg-primary/10 text-primary font-bold text-xs">
+                    {u.role === "ADMIN" ? (
+                      <Image src="/admin-avatar.png" alt="Admin Logo" width={36} height={36} className="h-full w-full object-cover" />
+                    ) : (
+                      u.email.charAt(0).toUpperCase()
+                    )}
                   </div>
                   <div>
                     <p className="text-sm font-bold text-foreground/90">{u.email}</p>

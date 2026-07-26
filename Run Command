@@ -1,0 +1,16 @@
+### Terminal 1: Backend
+backend
+npm run start:sqlite
+
+*(Runs setup script with SQLite `dev.db` and starts NestJS in dev mode)*
+
+### Terminal 2: Frontend
+frontend
+npm run dev
+
+
+---
+
+*(Optionally, if using Docker for just backend & frontend)*:
+
+docker compose up backend frontend -d

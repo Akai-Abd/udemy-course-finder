@@ -29,6 +29,7 @@ import { historyApi } from "@/lib/api-client";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
+import { Pagination } from "@/components/shared/pagination";
 import { cn } from "@/lib/utils";
 
 const actionIcons = {
@@ -303,29 +304,11 @@ export default function HistoryPage() {
 
           {/* Pagination */}
           {historyData && historyData.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-3 pt-6 select-none">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="h-9 px-3 text-xs font-bold rounded-xl border border-border/40 hover:bg-muted disabled:opacity-40"
-              >
-                Previous
-              </Button>
-              <span className="text-xs text-muted-foreground font-bold bg-background/60 border border-border/30 px-3.5 py-1.5 rounded-xl shadow-inner tabular-nums">
-                Page {page} of {historyData.totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= historyData.totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="h-9 px-3 text-xs font-bold rounded-xl border border-border/40 hover:bg-muted disabled:opacity-40"
-              >
-                Next
-              </Button>
-            </div>
+            <Pagination
+              currentPage={page}
+              totalPages={historyData.totalPages}
+              onPageChange={setPage}
+            />
           )}
         </div>
       )}

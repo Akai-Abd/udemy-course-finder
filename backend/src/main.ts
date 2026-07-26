@@ -15,11 +15,25 @@ async function bootstrap() {
   app.use(helmet());
 
   // ───────────── CORS ─────────────
-  const corsOrigins = process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
-    : ['http://localhost:3000'];
   app.enableCors({
-    origin: corsOrigins,
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      // Allow requests with no origin (like mobile apps, curl) or any localhost/127.0.0.1 origin
+      if (!origin || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        callback(null, true);
+      } else {
+        const allowed = process.env.CORS_ORIGIN
+          ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
+          : [];
+        if (allowed.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(null, true);
+        }
+      }
+    },
     credentials: true,
   });
 
@@ -40,7 +54,7 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Udemy Course Finder API')
     .setDescription(
-      'REST API for the Udemy Course Finder — aggregates free Udemy courses from 9 coupon sources',
+      'REST API for the Udemy Course Finder — aggregates free Udemy courses from 10 coupon sources',
     )
     .setVersion('1.0')
     .addBearerAuth()

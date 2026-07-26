@@ -12,14 +12,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCourses, useSearchCourses } from "@/lib/hooks/use-courses";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { Suspense } from "react";
 import { useFavorites, useToggleFavorite } from "@/lib/hooks/use-favorites";
 import { useRecordHistory } from "@/lib/hooks/use-history";
+import { useAnalyticsOverview } from "@/lib/hooks/use-analytics";
 import { CourseCard } from "@/components/courses/course-card";
 import { CourseFilters } from "@/components/courses/course-filters";
 import { ExportButton } from "@/components/courses/export-button";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
+import { Pagination } from "@/components/shared/pagination";
 import type { Course } from "@/lib/api-client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -33,15 +37,39 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
-export default function CoursesPage() {
+function CoursesContent() {
+  const searchParamsHook = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const page = Number(searchParamsHook.get("page")) || 1;
   const [searchInput, setSearchInput] = useState("");
-  const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [providerId, setProviderId] = useState<string | undefined>(undefined);
   const [expiryStatus, setExpiryStatus] = useState("active");
+  const [language, setLanguage] = useState("English");
   const [isSemantic, setIsSemantic] = useState(false);
+
+  const setPage = useCallback(
+    (pageOrFn: number | ((prev: number) => number)) => {
+      const current = Number(new URLSearchParams(window.location.search).get("page")) || 1;
+      const newPage =
+        typeof pageOrFn === "function" ? pageOrFn(current) : pageOrFn;
+      const params = new URLSearchParams(window.location.search);
+      if (newPage > 1) {
+        params.set("page", newPage.toString());
+      } else {
+        params.delete("page");
+      }
+      const newUrl = params.toString()
+        ? `${pathname}?${params.toString()}`
+        : pathname;
+      router.push(newUrl, { scroll: false });
+    },
+    [pathname, router]
+  );
 
   const debouncedSearch = useDebounce(searchInput, 300);
   const isSearching = debouncedSearch.length > 0;
@@ -56,9 +84,10 @@ export default function CoursesPage() {
             categoryId,
             providerId,
             expiryStatus,
+            language,
           }
         : undefined,
-    [isSearching, page, sortBy, categoryId, providerId, expiryStatus]
+    [isSearching, page, sortBy, categoryId, providerId, expiryStatus, language]
   );
 
   const searchParams = useMemo(
@@ -71,9 +100,10 @@ export default function CoursesPage() {
             categoryId,
             providerId,
             expiryStatus,
+            language,
           }
         : undefined,
-    [isSearching, debouncedSearch, page, categoryId, providerId, expiryStatus]
+    [isSearching, debouncedSearch, page, categoryId, providerId, expiryStatus, language]
   );
 
   const {
@@ -84,12 +114,19 @@ export default function CoursesPage() {
   } = useCourses(courseParams);
   const { data: searchData, isLoading: searchLoading } =
     useSearchCourses(searchParams, isSemantic);
+  const { data: analytics } = useAnalyticsOverview();
   const { data: favorites } = useFavorites();
   const { addFavorite, removeFavorite } = useToggleFavorite();
   const recordHistory = useRecordHistory();
 
   const displayData = isSearching ? searchData : coursesData;
   const loading = isSearching ? searchLoading : isLoading;
+
+  const totalInDb = analytics?.totalCourses;
+  const nonEnglishCount =
+    totalInDb && displayData?.total !== undefined && expiryStatus === "active" && !isSearching
+      ? totalInDb - displayData.total
+      : null;
 
   const favoriteIds = useMemo(
     () => new Set(favorites?.map((f) => f.courseId) ?? []),
@@ -119,14 +156,15 @@ export default function CoursesPage() {
     [recordHistory]
   );
 
-  const resetPage = useCallback(() => setPage(1), []);
+  const resetPage = useCallback(() => setPage(1), [setPage]);
 
   const handleClearFilters = useCallback(() => {
     setCategoryId(undefined);
     setProviderId(undefined);
     setExpiryStatus("active");
+    setLanguage("English");
     setPage(1);
-  }, []);
+  }, [setPage]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -228,6 +266,7 @@ export default function CoursesPage() {
         categoryId={categoryId}
         providerId={providerId}
         expiryStatus={expiryStatus}
+        language={language}
         onCategoryChange={(id) => {
           setCategoryId(id);
           resetPage();
@@ -240,20 +279,38 @@ export default function CoursesPage() {
           setExpiryStatus(status);
           resetPage();
         }}
+        onLanguageChange={(lang) => {
+          setLanguage(lang);
+          resetPage();
+        }}
         onClearAll={handleClearFilters}
       />
 
-      {/* Result count */}
+      {/* Result count with clear total explanation */}
       {displayData && !loading && (
-        <p className="text-xs text-muted-foreground font-semibold">
-          Showing {displayData.data.length} of {displayData.total} courses
+        <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground font-semibold">
+          <span>
+            Showing {displayData.data.length} of {displayData.total}{" "}
+            {language === "English"
+              ? "English courses"
+              : language === "all"
+              ? "courses (All Languages)"
+              : "Non-English courses"}
+          </span>
+          {language === "English" &&
+            nonEnglishCount !== null &&
+            nonEnglishCount > 0 && (
+              <span className="text-[11px] font-extrabold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+                {nonEnglishCount} Non-English courses hidden ({totalInDb} total in database)
+              </span>
+            )}
           {isSearching && (
             <span>
               {" "}
               for &ldquo;<span className="font-bold text-foreground">{debouncedSearch}</span>&rdquo;
             </span>
           )}
-        </p>
+        </div>
       )}
 
       {/* Course Grid/List */}
@@ -274,7 +331,7 @@ export default function CoursesPage() {
       ) : (
         <>
           {viewMode === "grid" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {displayData.data.map((course) => (
                 <CourseCard
                   key={course.id}
@@ -302,32 +359,22 @@ export default function CoursesPage() {
 
           {/* Pagination */}
           {displayData.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-3 pt-6 select-none">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="h-9 px-3 text-xs font-bold rounded-xl border border-border/40 hover:bg-muted disabled:opacity-40"
-              >
-                Previous
-              </Button>
-              <span className="text-xs text-muted-foreground font-bold bg-background/60 border border-border/30 px-3.5 py-1.5 rounded-xl shadow-inner tabular-nums">
-                Page {page} of {displayData.totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= displayData.totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="h-9 px-3 text-xs font-bold rounded-xl border border-border/40 hover:bg-muted disabled:opacity-40"
-              >
-                Next
-              </Button>
-            </div>
+            <Pagination
+              currentPage={page}
+              totalPages={displayData.totalPages}
+              onPageChange={setPage}
+            />
           )}
         </>
       )}
     </div>
+  );
+}
+
+export default function CoursesPage() {
+  return (
+    <Suspense fallback={<LoadingState variant="card-grid" />}>
+      <CoursesContent />
+    </Suspense>
   );
 }

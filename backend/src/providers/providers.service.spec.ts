@@ -29,12 +29,25 @@ describe('ProvidersService', () => {
       findLogs: jest.fn(),
       getStats: jest.fn(),
       countEnabled: jest.fn(),
+      createLog: jest.fn().mockImplementation((data) =>
+        Promise.resolve({
+          id: 'log-1',
+          providerId: data.provider?.connect?.id || 'prov-1',
+          jobId: data.jobId,
+          status: data.status || 'RUNNING',
+          startedAt: new Date(),
+          completedAt: null,
+          itemsFound: 0,
+          errorMessage: null,
+        }),
+      ),
     };
 
     jobsService = {
       enqueueScrapeJob: jest.fn().mockResolvedValue('job-1'),
       enqueueTestJob: jest.fn().mockResolvedValue('test-job-1'),
       retryJob: jest.fn(),
+      triggerPythonScraper: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -119,57 +132,23 @@ describe('ProvidersService', () => {
   });
 
   describe('retryProvider', () => {
-    it('should trigger new scrape when no logs exist', async () => {
+    it('should initiate retry for provider', async () => {
       repository.findById!.mockResolvedValue(mockProvider as any);
-      repository.findLogs!.mockResolvedValue({ data: [], total: 0 });
+      repository.update!.mockResolvedValue(mockProvider as any);
 
       const result = await service.retryProvider('prov-1');
 
-      expect(result.message).toContain('No recent job');
-    });
-
-    it('should skip retry when last job is not FAILED', async () => {
-      repository.findById!.mockResolvedValue(mockProvider as any);
-      repository.findLogs!.mockResolvedValue({
-        data: [{ status: 'SUCCESS', jobId: 'j1' }],
-        total: 1,
+      expect(result.message).toBe('Retry initiated for Real Discount');
+      expect(repository.update).toHaveBeenCalledWith('prov-1', {
+        lastStatus: 'RUNNING',
+        lastRunAt: expect.any(Date),
       });
-
-      const result = await service.retryProvider('prov-1');
-
-      expect(result.message).toContain('not FAILED');
-    });
-
-    it('should retry a failed job', async () => {
-      repository.findById!.mockResolvedValue(mockProvider as any);
-      repository.findLogs!.mockResolvedValue({
-        data: [{ status: 'FAILED', jobId: 'j1' }],
-        total: 1,
-      });
-      jobsService.retryJob!.mockResolvedValue({
-        success: true,
-        message: 'Job j1 retried',
-      });
-
-      const result = await service.retryProvider('prov-1');
-
-      expect(result.message).toBe('Job j1 retried');
-    });
-
-    it('should enqueue new job when retry fails', async () => {
-      repository.findById!.mockResolvedValue(mockProvider as any);
-      repository.findLogs!.mockResolvedValue({
-        data: [{ status: 'FAILED', jobId: 'j1' }],
-        total: 1,
-      });
-      jobsService.retryJob!.mockResolvedValue({
-        success: false,
-        message: 'Not found',
-      });
-
-      const result = await service.retryProvider('prov-1');
-
-      expect(result.message).toContain('New scrape enqueued');
+      expect(repository.createLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'RUNNING',
+          message: 'Retrying scrape for Real Discount...',
+        }),
+      );
     });
   });
 });

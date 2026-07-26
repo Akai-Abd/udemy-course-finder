@@ -375,7 +375,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Active Targets</p>
-              <p className="text-xs font-bold text-foreground/90 mt-0.5">9 coupon networks</p>
+              <p className="text-xs font-bold text-foreground/90 mt-0.5">10 coupon networks</p>
             </div>
           </div>
         </CardContent>
@@ -488,8 +488,9 @@ export default function SettingsPage() {
           <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-muted/40 border border-border/20">
             <Info className="h-4.5 w-4.5 text-muted-foreground/60 shrink-0 mt-0.5" />
             <p className="text-xs text-muted-foreground leading-relaxed font-medium">
-              Udemy Course Finder aggregates free Udemy courses from 9 coupon sources. All scraping, filtering,
-              and storage happens locally via Docker Compose.
+              Udemy Course Finder aggregates free 100% off Udemy courses from 10 coupon sources. Features real-time scraping,
+              AI semantic vector search, analytics insights, role-based access control, and full mobile responsiveness.
+              Supports both local SQLite dev & production Docker Compose environments.
             </p>
           </div>
         </CardContent>

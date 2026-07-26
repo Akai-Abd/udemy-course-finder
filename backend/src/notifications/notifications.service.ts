@@ -134,7 +134,7 @@ export class NotificationsService {
         where: {
           userId: fav.userId,
           type: NotificationType.EXPIRING_SOON,
-          metadata: { path: ['courseId'], equals: fav.courseId },
+          metadata: { path: ['courseId'], equals: fav.courseId } as any,
         },
       });
 

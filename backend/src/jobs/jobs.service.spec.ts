@@ -12,6 +12,7 @@ describe('JobsService', () => {
   beforeEach(async () => {
     mockQueue = {
       add: jest.fn().mockResolvedValue({ id: 'job-1' }),
+      on: jest.fn(),
       getJob: jest.fn(),
       getRepeatableJobs: jest.fn().mockResolvedValue([]),
       removeRepeatableByKey: jest.fn(),

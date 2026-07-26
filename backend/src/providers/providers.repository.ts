@@ -26,6 +26,20 @@ export class ProvidersRepository {
     });
   }
 
+  async createLog(data: Prisma.LogCreateInput): Promise<Log> {
+    return this.prisma.log.create({ data });
+  }
+
+  async updateLog(
+    id: string,
+    data: Prisma.LogUpdateInput,
+  ): Promise<Log> {
+    return this.prisma.log.update({
+      where: { id },
+      data,
+    });
+  }
+
   async findLogs(
     providerId: string,
     page = 1,

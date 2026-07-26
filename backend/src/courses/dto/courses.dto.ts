@@ -52,6 +52,13 @@ export class ListCoursesDto {
   @IsOptional()
   @IsString()
   expiryStatus?: string = 'active';
+
+  @ApiPropertyOptional({
+    description: 'Filter by language: English, all, etc.',
+  })
+  @IsOptional()
+  @IsString()
+  language?: string;
 }
 
 export class SearchCoursesDto extends ListCoursesDto {

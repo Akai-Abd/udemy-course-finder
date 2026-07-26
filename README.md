@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="frontend/public/globe.svg" width="120" height="120" alt="Logo" />
+  <img src="frontend/src/app/icon.png" width="120" height="120" alt="Udemy Course Finder Logo" style="border-radius: 24px;" />
   
   # 🎓 Udemy Course Finder
   
@@ -17,15 +17,13 @@
 
 ## ✨ Overview
 
-**Udemy Course Finder** is a localhost-only application that continuously discovers free, English-language Udemy courses by scraping a curated set of coupon websites. It normalizes the results, deduplicates them, and presents them in a beautiful, modern dashboard. 
+**Udemy Course Finder** is a self-hosted application that continuously discovers free, English-language Udemy courses by scraping **10 coupon websites**. It normalizes the results through a 6-stage data pipeline, deduplicates them, and presents them in a modern, mobile-responsive dashboard with AI-powered semantic search.
 
 Never manually search coupon sites again—let the Python worker do the heavy lifting in the background while you browse a clean, ad-free interface.
 
 ---
 
 ## 🏗️ Architecture
-
-The application is built on a robust, microservice-inspired architecture running entirely within Docker:
 
 ```mermaid
 graph LR
@@ -42,7 +40,9 @@ graph LR
 
 ## 🚀 Quick Start
 
-Get the entire stack running in under 5 minutes using Docker Compose.
+### Docker Compose (Production)
+
+Get the entire stack running in under 5 minutes:
 
 ```bash
 # 1. Clone the repository
@@ -61,6 +61,26 @@ docker compose up -d
 
 🎉 **You're done!** Open [http://localhost:3001](http://localhost:3001) in your browser.
 
+### Local Development (SQLite)
+
+For local development without Docker/PostgreSQL/Redis:
+
+```bash
+# Terminal 1: Backend (SQLite mode)
+cd backend
+npm install
+npm run start:sqlite
+
+# Terminal 2: Frontend
+cd frontend
+npm install
+npm run dev
+```
+
+> SQLite mode uses a local `dev.db` file — no external database required.
+
+🎉 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
 > **Default Admin Credentials:**
 > - **Email:** `admin@localhost.local`
 > - **Password:** `ChangeMe123!`
@@ -77,8 +97,12 @@ docker compose up -d
 - **⏰ Auto-Scheduling** — Configurable scrape interval with BullMQ job queue
 - **✅ Coupon Validation** — Periodic verification of active coupons against Udemy
 - **🔐 Secure Auth** — JWT with refresh tokens, Argon2 hashing, Redis token blacklist
+- **👥 Admin Panel** — Role-based access control with user management
+- **🔔 Notifications** — Real-time in-app notification system
+- **📱 Mobile Responsive** — Fully responsive UI with mobile drawer navigation
 - **📖 Swagger Docs** — Full OpenAPI documentation at `/api`
 - **🐳 Docker Ready** — One-command deployment with Docker Compose
+- **🗃️ Dual Database** — Production PostgreSQL + lightweight SQLite for local dev
 
 ---
 
@@ -88,10 +112,10 @@ docker compose up -d
 
 | Component | Technologies Used | Highlight |
 | :--- | :--- | :--- |
-| **🎨 Frontend** | Next.js 16, React 19, TailwindCSS 4 | TanStack Query, Recharts, shadcn/ui |
+| **🎨 Frontend** | Next.js 16, React 19, TailwindCSS 4 | TanStack Query, Recharts, shadcn/ui, mobile responsive |
 | **⚙️ Backend** | NestJS 11, Prisma 7, Passport JWT | BullMQ, Swagger API Docs, Pino Logging |
 | **🕷️ Scraper** | Python 3.12, BeautifulSoup, requests | 6-stage pipeline, deduplication, proxy rotation |
-| **🗄️ Database** | PostgreSQL 16 + pgvector | Vector search, relational data, indexing |
+| **🗄️ Database** | PostgreSQL 16 + pgvector / SQLite | Vector search, relational data, indexing |
 | **⚡ Cache/Queue**| Redis 7 | BullMQ job orchestration, token blacklist, caching |
 
 </div>
@@ -131,41 +155,50 @@ The backend exposes a full REST API (Swagger docs at `http://localhost:4001/api`
 | **Analytics** | `GET /analytics/overview`, `time-series` | Dashboard analytics |
 | **Categories** | `GET /categories` | 13 seeded course categories |
 | **Settings** | `GET /settings/:key`, `PATCH :key` | App configuration |
+| **Users** | `GET /users`, `PATCH :id/role`, `DELETE :id` | Admin user management |
+| **Notifications** | `GET /notifications`, `PATCH :id/read`, `POST :id/dismiss` | In-app notifications |
 
 ---
 
 ## 💻 Development Setup
 
-Want to run the services locally without Docker for development?
-
 <details>
-<summary><b>Click to expand development instructions</b></summary>
+<summary><b>Click to expand full development instructions</b></summary>
 
 ### Prerequisites
 * Node.js 20+
 * Python 3.12+
+
+**For Docker mode additionally:**
 * PostgreSQL 16 (with pgvector extension)
 * Redis 7
 
-### 1. Backend API
+### Option A: SQLite (No Docker Required)
+
 ```bash
+# Backend (uses local dev.db)
 cd backend
 npm install
-npx prisma generate
-npx prisma migrate dev
-npm run start:dev
-```
-*Swagger UI is available at `http://localhost:4000/api`*
+npm run start:sqlite
+# API at http://localhost:4000, Swagger at http://localhost:4000/api
 
-### 2. Frontend Dashboard
-```bash
+# Frontend
 cd frontend
 npm install
 npm run dev
+# Dashboard at http://localhost:3000
 ```
-*Dashboard available at `http://localhost:3000`*
 
-### 3. Python Scraper
+### Option B: Docker Compose (Full Stack)
+
+```bash
+cp .env.example .env
+# Edit .env with your secrets
+docker compose up -d
+# Frontend at http://localhost:3001, API at http://localhost:4001/api
+```
+
+### Python Scraper (Standalone)
 ```bash
 cd scraper
 python -m venv .venv && source .venv/bin/activate
@@ -191,7 +224,7 @@ cd backend && npm run test:e2e
 # Scraper tests
 cd scraper && python -m pytest tests/ -v
 
-# Frontend lint + type check
+# Frontend type check
 cd frontend && npx tsc --noEmit && npm run lint
 ```
 </details>
@@ -213,14 +246,16 @@ udemy-course-finder/
 │   │   ├── categories/       # Course categories
 │   │   ├── jobs/             # BullMQ job scheduling
 │   │   ├── embeddings/       # HuggingFace vector embeddings
+│   │   ├── notifications/    # In-app notification system
+│   │   ├── users/            # Admin user management (RBAC)
 │   │   ├── settings/         # App settings
 │   │   └── common/           # Guards, filters, decorators, cache
-│   ├── prisma/               # Schema, migrations, seed
+│   ├── prisma/               # Schema (PostgreSQL + SQLite), migrations, seed
 │   └── test/                 # E2E tests
 ├── frontend/                 # Next.js dashboard
 │   └── src/
-│       ├── app/              # App Router pages
-│       ├── components/       # UI components (shadcn/ui, analytics, shared)
+│       ├── app/              # App Router pages + custom favicon & branding
+│       ├── components/       # UI components (shadcn/ui, analytics, layout, shared)
 │       └── lib/              # API client, hooks, utilities
 ├── scraper/                  # Python scraping worker
 │   └── src/
@@ -228,6 +263,7 @@ udemy-course-finder/
 │       ├── pipeline/         # normalize → validate → filter → dedup → store
 │       └── utils/            # HTTP client, URL parser, logging
 ├── docker-compose.yml        # Service orchestration (5 containers)
+├── docker-compose.override.yml # Dev mode overrides (hot reload)
 └── .env.example              # Environment configuration template
 ```
 
@@ -245,6 +281,8 @@ Key configuration (see `.env.example` for all options):
 | `SCRAPE_INTERVAL_MINUTES` | Auto-scrape frequency | `30` |
 | `SCRAPE_DELAY_SECONDS` | Delay between HTTP requests | `2` |
 | `NEXT_PUBLIC_API_URL` | Frontend → Backend URL | `http://localhost:4001` |
+| `DEFAULT_ADMIN_EMAIL` | Initial admin email | `admin@localhost.local` |
+| `DEFAULT_ADMIN_PASSWORD` | Initial admin password | `ChangeMe123!` |
 
 ---
 

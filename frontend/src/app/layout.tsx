@@ -12,7 +12,12 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Udemy Course Finder",
   description:
-    "Discover free Udemy courses aggregated from 9 coupon sources. Search, browse, and save the best deals.",
+    "Discover free Udemy courses aggregated from 10 coupon sources. Search, browse, and save the best deals.",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -21,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans min-h-screen antialiased`}>
         <QueryProvider>
           {children}

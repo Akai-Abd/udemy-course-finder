@@ -19,9 +19,11 @@ interface CourseFiltersProps {
   categoryId: string | undefined;
   providerId: string | undefined;
   expiryStatus: string;
+  language: string;
   onCategoryChange: (categoryId: string | undefined) => void;
   onProviderChange: (providerId: string | undefined) => void;
   onExpiryChange: (status: string) => void;
+  onLanguageChange: (lang: string) => void;
   onClearAll: () => void;
 }
 
@@ -29,9 +31,11 @@ export function CourseFilters({
   categoryId,
   providerId,
   expiryStatus,
+  language,
   onCategoryChange,
   onProviderChange,
   onExpiryChange,
+  onLanguageChange,
   onClearAll,
 }: CourseFiltersProps) {
   const { data: categories } = useCategories();
@@ -39,7 +43,7 @@ export function CourseFilters({
   const [expanded, setExpanded] = useState(false);
 
   const hasActiveFilters =
-    categoryId || providerId || expiryStatus !== "active";
+    categoryId || providerId || expiryStatus !== "active" || language !== "English";
 
   const activeFilters: { label: string; onRemove: () => void }[] = [];
 
@@ -61,8 +65,15 @@ export function CourseFilters({
 
   if (expiryStatus !== "active") {
     activeFilters.push({
-      label: expiryStatus === "expired" ? "Expired" : "All Courses",
+      label: expiryStatus === "expired" ? "Expired" : "All Coupon Statuses",
       onRemove: () => onExpiryChange("active"),
+    });
+  }
+
+  if (language !== "English") {
+    activeFilters.push({
+      label: language === "all" ? "All Languages (378)" : `Language: ${language}`,
+      onRemove: () => onLanguageChange("English"),
     });
   }
 
@@ -110,7 +121,7 @@ export function CourseFilters({
               onCategoryChange(v === "__all__" ? undefined : v)
             }
           >
-            <SelectTrigger className="w-48 bg-background/50 border-border/40 rounded-xl text-xs font-semibold h-9">
+            <SelectTrigger className="w-full sm:w-48 bg-background/50 border-border/40 rounded-xl text-xs font-semibold h-9">
               <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground/60" />
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
@@ -131,7 +142,7 @@ export function CourseFilters({
               onProviderChange(v === "__all__" ? undefined : v)
             }
           >
-            <SelectTrigger className="w-48 bg-background/50 border-border/40 rounded-xl text-xs font-semibold h-9">
+            <SelectTrigger className="w-full sm:w-48 bg-background/50 border-border/40 rounded-xl text-xs font-semibold h-9">
               <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground/60" />
               <SelectValue placeholder="All Sources" />
             </SelectTrigger>
@@ -147,13 +158,25 @@ export function CourseFilters({
 
           {/* Expiry */}
           <Select value={expiryStatus} onValueChange={onExpiryChange}>
-            <SelectTrigger className="w-40 bg-background/50 border-border/40 rounded-xl text-xs font-semibold h-9">
+            <SelectTrigger className="w-full sm:w-40 bg-background/50 border-border/40 rounded-xl text-xs font-semibold h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-popover border border-border/45 rounded-xl">
               <SelectItem value="active" className="font-semibold text-xs py-2">Active Only</SelectItem>
               <SelectItem value="expired" className="font-semibold text-xs py-2">Expired Only</SelectItem>
-              <SelectItem value="all" className="font-semibold text-xs py-2">All Courses</SelectItem>
+              <SelectItem value="all" className="font-semibold text-xs py-2">All Coupon Statuses</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Language */}
+          <Select value={language} onValueChange={onLanguageChange}>
+            <SelectTrigger className="w-full sm:w-44 bg-background/50 border-border/40 rounded-xl text-xs font-semibold h-9">
+              <SelectValue placeholder="Language" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border border-border/45 rounded-xl">
+              <SelectItem value="English" className="font-semibold text-xs py-2">English Only</SelectItem>
+              <SelectItem value="all" className="font-semibold text-xs py-2">All Languages</SelectItem>
+              <SelectItem value="Non-English" className="font-semibold text-xs py-2">Non-English Only</SelectItem>
             </SelectContent>
           </Select>
         </div>

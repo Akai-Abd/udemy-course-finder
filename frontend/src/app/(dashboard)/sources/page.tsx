@@ -50,6 +50,7 @@ import {
 } from "@/lib/hooks/use-providers";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ErrorState } from "@/components/shared/error-state";
+import { Pagination } from "@/components/shared/pagination";
 import type { Provider } from "@/lib/api-client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -214,29 +215,11 @@ function LogViewerDialog({
             </div>
 
             {logsData.totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 pt-2 select-none">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={logPage <= 1}
-                  onClick={() => setLogPage((p) => p - 1)}
-                  className="h-8 text-xs font-semibold border-border/40 hover:bg-muted"
-                >
-                  Previous
-                </Button>
-                <span className="text-xs text-muted-foreground font-semibold px-2">
-                  Page {logPage} of {logsData.totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={logPage >= logsData.totalPages}
-                  onClick={() => setLogPage((p) => p + 1)}
-                  className="h-8 text-xs font-semibold border-border/40 hover:bg-muted"
-                >
-                  Next
-                </Button>
-              </div>
+              <Pagination
+                currentPage={logPage}
+                totalPages={logsData.totalPages}
+                onPageChange={setLogPage}
+              />
             )}
           </div>
         )}

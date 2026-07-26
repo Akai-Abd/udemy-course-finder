@@ -2,7 +2,7 @@
 Udemy Course Finder — URL Parser
 
 Extracts Udemy course IDs and normalizes URLs from various formats
-found across the 9 coupon aggregator sites.
+found across the 10 coupon aggregator sites.
 """
 
 import re

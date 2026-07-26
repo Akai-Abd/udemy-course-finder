@@ -79,6 +79,7 @@ export function CourseCard({
   compact = false,
 }: CourseCardProps) {
   const { timeLeft, isUrgent, isExpired } = useCountdown(course.expiresAt);
+  const [imgError, setImgError] = useState(false);
   const isHot = (course.rating && course.rating >= 4.5) || (course._count?.history && course._count.history >= 3);
 
   const handleGetCourse = (e: React.MouseEvent) => {
@@ -96,13 +97,15 @@ export function CourseCard({
       <div className="group/compact flex items-center gap-3 rounded-xl border border-border/30 bg-card/40 p-3 backdrop-blur-sm transition-all duration-300 hover:bg-muted/50 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20">
         {/* Thumbnail */}
         <div className="relative h-10 w-16 shrink-0 overflow-hidden rounded-lg bg-muted border border-border/20">
-          {course.thumbnailUrl ? (
+          {!imgError && course.thumbnailUrl ? (
             <Image
               src={course.thumbnailUrl}
               alt={course.title}
               fill
+              priority
               sizes="64px"
               className="object-cover transition-transform duration-300 group-hover/compact:scale-105"
+              onError={() => setImgError(true)}
             />
           ) : (
             <div className="flex h-full items-center justify-center gradient-primary opacity-60">
@@ -137,10 +140,10 @@ export function CourseCard({
                 className={cn(
                   "text-[9px] px-1 py-0 gap-0.5 transition-colors duration-300 font-semibold",
                   isExpired
-                    ? "text-destructive border-destructive bg-destructive/10"
+                    ? "bg-muted text-muted-foreground border-border/30"
                     : isUrgent
-                    ? "text-red-500 border-red-500 bg-red-500/10 animate-pulse"
-                    : "text-muted-foreground border-border/40"
+                    ? "bg-red-500/10 text-red-500 border-red-500/20"
+                    : "bg-amber-500/10 text-amber-500 border-amber-500/20"
                 )}
               >
                 <Clock className="h-2.5 w-2.5" />
@@ -149,30 +152,37 @@ export function CourseCard({
             )}
           </div>
         </div>
-        {/* Get Course */}
-        <Button size="sm" variant="gradient" className="text-xs shrink-0 h-7 px-2.5 font-bold hover:shadow-primary/10 hover:shadow-md" onClick={handleGetCourse}>
-          <ExternalLink className="h-3 w-3" />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleGetCourse}
+          className="h-8 px-2.5 text-xs font-bold rounded-lg opacity-0 group-hover/compact:opacity-100 transition-opacity"
+        >
           Get
+          <ExternalLink className="h-3 w-3 ml-1" />
         </Button>
       </div>
     );
   }
 
   return (
-    <Card className="group overflow-hidden bg-gradient-to-b from-card/95 to-card/75 backdrop-blur-sm border border-border/40 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-1">
-      {/* Thumbnail */}
-      <div className="relative h-40 bg-muted overflow-hidden border-b border-border/30">
-        {course.thumbnailUrl ? (
+    <Card className="group relative flex flex-col overflow-hidden rounded-2xl border-border/30 bg-card/45 backdrop-blur-md shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/20">
+      {/* Aspect ratio image container */}
+      <div className="relative aspect-video w-full overflow-hidden bg-muted/40">
+        {!imgError && course.thumbnailUrl ? (
           <Image
             src={course.thumbnailUrl}
             alt={course.title}
             fill
+            loading="eager"
             sizes="(max-width: 768px) 100vw, 300px"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
+            onError={() => setImgError(true)}
           />
         ) : (
-          <div className="flex h-full items-center justify-center gradient-primary opacity-60">
-            <span className="text-4xl font-bold text-white/30">
+          <div className="flex h-full items-center justify-center gradient-primary opacity-80 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/30 via-purple-600/30 to-background/80" />
+            <span className="text-4xl font-black text-foreground/40 drop-shadow-sm select-none z-10">
               {course.title.charAt(0)}
             </span>
           </div>

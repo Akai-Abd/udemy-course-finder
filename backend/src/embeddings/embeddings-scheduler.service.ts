@@ -38,6 +38,12 @@ export class EmbeddingsScheduler implements OnModuleInit, OnModuleDestroy {
   }
 
   async processMissingEmbeddings() {
+    const dbUrl = process.env.DATABASE_URL || 'file:./dev.db';
+    if (dbUrl.startsWith('file:') || dbUrl.includes('.db')) {
+      // In SQLite mode, pgvector (course_embeddings) is not used.
+      return;
+    }
+
     if (this.isProcessing) return;
     this.isProcessing = true;
 

@@ -22,8 +22,9 @@ export class CoursesRepository {
     providerId?: string;
     sortBy?: CourseSortBy;
     expiryStatus?: string;
+    language?: string;
   }): Promise<PaginatedResult<Course>> {
-    const { page, limit, categoryId, providerId, sortBy, expiryStatus } =
+    const { page, limit, categoryId, providerId, sortBy, expiryStatus, language } =
       params;
     const skip = (page - 1) * limit;
 
@@ -33,8 +34,15 @@ export class CoursesRepository {
       OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
     };
 
+    const langFilter =
+      language === 'all'
+        ? undefined
+        : language === 'Non-English'
+        ? { not: 'English' }
+        : language || 'English';
+
     const where: Prisma.CourseWhereInput = {
-      language: 'English',
+      ...(langFilter && { language: langFilter }),
       ...(categoryId && { categoryId }),
       ...(providerId
         ? {
@@ -108,9 +116,18 @@ export class CoursesRepository {
     providerId?: string;
     sortBy?: CourseSortBy;
     expiryStatus?: string;
+    language?: string;
   }): Promise<PaginatedResult<Course>> {
-    const { query, page, limit, categoryId, providerId, sortBy, expiryStatus } =
-      params;
+    const {
+      query,
+      page,
+      limit,
+      categoryId,
+      providerId,
+      sortBy,
+      expiryStatus,
+      language,
+    } = params;
     const skip = (page - 1) * limit;
 
     const activeFilter: Prisma.CouponSourceWhereInput = {
@@ -119,13 +136,20 @@ export class CoursesRepository {
       OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
     };
 
+    const langFilter =
+      language === 'all'
+        ? undefined
+        : language === 'Non-English'
+        ? { not: 'English' }
+        : language || 'English';
+
     const where: Prisma.CourseWhereInput = {
-      language: 'English',
+      ...(langFilter && { language: langFilter }),
       ...(query && {
         OR: [
-          { title: { contains: query, mode: 'insensitive' as const } },
-          { description: { contains: query, mode: 'insensitive' as const } },
-          { instructor: { contains: query, mode: 'insensitive' as const } },
+          { title: { contains: query } },
+          { description: { contains: query } },
+          { instructor: { contains: query } },
         ],
       }),
       ...(categoryId && { categoryId }),

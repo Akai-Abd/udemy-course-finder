@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -10,7 +11,6 @@ import {
   Globe,
   BarChart3,
   Settings,
-  GraduationCap,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -44,14 +44,14 @@ export function Sidebar() {
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
-          "relative flex flex-col border-r border-border/40 bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out",
+          "hidden md:flex relative flex-col border-r border-border/40 bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out",
           collapsed ? "w-16" : "w-64"
         )}
       >
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 px-4 border-b border-border/40">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl gradient-primary shadow-md shadow-indigo-500/10 animate-float">
-            <GraduationCap className="h-5 w-5 text-white" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-md shadow-indigo-500/10 animate-float">
+            <Image src="/icon.png" alt="Udemy Finder Logo" width={36} height={36} className="h-full w-full object-cover" />
           </div>
           {!collapsed && (
             <div className="flex flex-col animate-fade-in">

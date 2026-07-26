@@ -164,6 +164,38 @@ def normalize_category(category: str | None) -> str | None:
     return best_match
 
 
+def detect_language(title: str, current_lang: str | None) -> str:
+    """Detect course language from title keywords and characters if not already specified."""
+    if current_lang and current_lang.strip() and current_lang.lower() not in ("unknown", "none"):
+        return current_lang
+
+    german_words = {"für", "und", "der", "die", "das", "mit", "von", "ein", "eine", "nichtmuslime", "deutsch", "lernen", "kurs"}
+    spanish_words = {"para", "con", "del", "los", "las", "curso", "completo", "desde", "cero", "español"}
+    french_words = {"avec", "pour", "dans", "les", "des", "français", "apprendre"}
+    portuguese_words = {"para", "com", "curso", "completo", "português", "iniciantes"}
+
+    arabic_chars = re.compile(r"[\u0600-\u06FF]")
+    cyrillic_chars = re.compile(r"[\u0400-\u04FF]")
+
+    lower_title = title.lower() if title else ""
+    words = set(re.findall(r"\b\w+\b", lower_title))
+
+    if arabic_chars.search(title or ""):
+        return "Arabic"
+    if cyrillic_chars.search(title or ""):
+        return "Russian"
+    if any(w in words for w in german_words) or any(c in lower_title for c in ["für", "ü", "ä", "ö"]):
+        return "German"
+    if any(w in words for w in spanish_words) or any(c in lower_title for c in ["ñ", "á", "é", "í", "ó", "ú"]):
+        return "Spanish"
+    if any(w in words for w in french_words) or any(c in lower_title for c in ["ç", "è", "à"]):
+        return "French"
+    if any(w in words for w in portuguese_words) or any(c in lower_title for c in ["ção", "ões"]):
+        return "Portuguese"
+
+    return "English"
+
+
 def normalize_course(course: ScrapedCourse) -> ScrapedCourse:
     """
     Normalize a single ScrapedCourse record.
@@ -173,6 +205,7 @@ def normalize_course(course: ScrapedCourse) -> ScrapedCourse:
     - Normalize URLs
     - Extract Udemy course ID
     - Map category to seeded slugs
+    - Detect course language
     - Clean and upscale thumbnails
     """
     # 1. Resolve redirect URLs first to make sure we work with the final/real URLs
@@ -183,6 +216,9 @@ def normalize_course(course: ScrapedCourse) -> ScrapedCourse:
 
     # Normalize title
     course.title = normalize_title(course.title)
+
+    # Detect language
+    course.language = detect_language(course.title, course.language)
 
     # Normalize Udemy URL
     if course.udemy_url:
