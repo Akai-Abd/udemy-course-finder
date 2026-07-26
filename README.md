@@ -76,6 +76,7 @@ No Docker, PostgreSQL, or Redis required.
 cd backend
 cp .env.example .env
 npm install
+npm run build      # Verify build output
 npm run start:sqlite
 ```
 > `npm run start:sqlite` automatically sets `DATABASE_URL="file:./dev.db"` and `ENABLE_REDIS="false"`, syncs the SQLite database, seeds default categories/admin, and starts NestJS at `http://localhost:4000`.
@@ -85,7 +86,8 @@ npm run start:sqlite
 cd frontend
 cp .env.example .env
 npm install
-npm run dev
+npm run build      # Build Next.js production bundle
+npm run dev        # Or npm run start for production server
 ```
 > Frontend will open at `http://localhost:3000` connected to `http://localhost:4000`.
 
