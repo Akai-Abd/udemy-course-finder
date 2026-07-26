@@ -288,7 +288,7 @@ Key configuration (see `.env.example` for all options):
 
 <div align="center">
   
-  *Built by Akai ❤️ for lifelong learners.*
+  *Built by ABDURRAHMAN ❤️ for lifelong learners.*
   
   **[MIT License](LICENSE)**
 </div>
