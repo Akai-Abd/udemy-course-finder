@@ -19,8 +19,11 @@ export class EmbeddingsService implements OnModuleInit {
         'Xenova/all-MiniLM-L6-v2',
       );
       this.logger.log('✅ Embedding pipeline initialized successfully');
-    } catch (error) {
-      this.logger.error('❌ Failed to initialize embedding pipeline:', error);
+    } catch (error: any) {
+      this.logger.error(
+        `❌ Failed to initialize embedding pipeline: ${error?.message || error}`,
+        error?.stack,
+      );
     }
   }
 
