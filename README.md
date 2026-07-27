@@ -138,9 +138,10 @@ docker compose up -d
   ```bash
   # Free up Backend port 4000 (NestJS)
   fuser -k 4000/tcp  # Linux native (or cross-platform: npx kill-port 4000)
-
+  npx kill-port 4000
   # Free up Frontend port 3000 (Next.js)
   fuser -k 3000/tcp  # Linux native (or cross-platform: npx kill-port 3000)
+  npx kill-port 3000
   ```
 
 #### 2️⃣ `Cannot GET /` on `http://localhost:4000`
