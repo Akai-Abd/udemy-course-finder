@@ -17,7 +17,7 @@ export function useSearchCourses(params?: Record<string, string | number | undef
       const apiFn = semantic ? coursesApi.semanticSearch : coursesApi.search;
       return apiFn(params).then((res) => res.data);
     },
-    enabled: !!params?.q,
+    enabled: !!params?.query,
   });
 }
 

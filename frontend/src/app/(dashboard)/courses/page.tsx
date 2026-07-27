@@ -44,7 +44,7 @@ function CoursesContent() {
 
   const page = Number(searchParamsHook.get("page")) || 1;
   const [searchInput, setSearchInput] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
+  const [sortBy, setSortBy] = useState<string>("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [providerId, setProviderId] = useState<string | undefined>(undefined);
@@ -78,14 +78,14 @@ function CoursesContent() {
     () =>
       !isSearching
         ? {
-            page,
-            limit: 12,
-            sort: sortBy,
-            categoryId,
-            providerId,
-            expiryStatus,
-            language,
-          }
+          page,
+          limit: 12,
+          sortBy,
+          categoryId,
+          providerId,
+          expiryStatus,
+          language,
+        }
         : undefined,
     [isSearching, page, sortBy, categoryId, providerId, expiryStatus, language]
   );
@@ -94,14 +94,14 @@ function CoursesContent() {
     () =>
       isSearching
         ? {
-            q: debouncedSearch,
-            page,
-            limit: 12,
-            categoryId,
-            providerId,
-            expiryStatus,
-            language,
-          }
+          query: debouncedSearch,
+          page,
+          limit: 12,
+          categoryId,
+          providerId,
+          expiryStatus,
+          language,
+        }
         : undefined,
     [isSearching, debouncedSearch, page, categoryId, providerId, expiryStatus, language]
   );
@@ -220,8 +220,8 @@ function CoursesContent() {
             <SelectContent className="bg-popover border-border/40 rounded-xl">
               <SelectItem value="newest" className="font-semibold text-xs py-2">Newest Discovered</SelectItem>
               <SelectItem value="rating" className="font-semibold text-xs py-2">Highest Rated</SelectItem>
-              <SelectItem value="expiring" className="font-semibold text-xs py-2">Expiring Soon</SelectItem>
-              <SelectItem value="title" className="font-semibold text-xs py-2">Alphabetical (A-Z)</SelectItem>
+              <SelectItem value="expiring_soon" className="font-semibold text-xs py-2">Expiring Soon</SelectItem>
+              <SelectItem value="alphabetical" className="font-semibold text-xs py-2">Alphabetical (A-Z)</SelectItem>
             </SelectContent>
           </Select>
 
@@ -294,8 +294,8 @@ function CoursesContent() {
             {language === "English"
               ? "English courses"
               : language === "all"
-              ? "courses (All Languages)"
-              : "Non-English courses"}
+                ? "courses (All Languages)"
+                : "Non-English courses"}
           </span>
           {language === "English" &&
             nonEnglishCount !== null &&

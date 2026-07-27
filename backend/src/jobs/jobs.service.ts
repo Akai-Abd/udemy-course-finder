@@ -22,8 +22,8 @@ export class JobsService implements OnModuleInit {
   }
 
   public triggerPythonScraper() {
-    const scraperPath = path.resolve(__dirname, '../../../scraper/run_all.py');
-    const dbPath = path.resolve(__dirname, '../../../backend/dev.db');
+    const scraperPath = path.resolve(__dirname, '../../../../scraper/run_all.py');
+    const dbPath = path.resolve(__dirname, '../../../dev.db');
     this.logger.log(`🐍 Triggering Python Scraper: python3 ${scraperPath}`);
 
     exec(`DATABASE_URL="${dbPath}" python3 "${scraperPath}"`, (error, stdout) => {
@@ -106,7 +106,7 @@ export class JobsService implements OnModuleInit {
     } catch (error) {
       this.logger.warn(
         `Failed to schedule repeatable job: ${error}. ` +
-          `The Python scraper has its own scheduler as fallback.`,
+        `The Python scraper has its own scheduler as fallback.`,
       );
     }
   }
@@ -269,3 +269,4 @@ export class JobsService implements OnModuleInit {
     }
   }
 }
+
