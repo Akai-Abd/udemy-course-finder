@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getExportUrl } from "@/lib/api-client";
+import { exportCourses } from "@/lib/api-client";
 import { toast } from "sonner";
 
 interface ExportButtonProps {
@@ -16,32 +16,14 @@ interface ExportButtonProps {
 }
 
 export function ExportButton({ type = "all" }: ExportButtonProps) {
-  const handleExport = (format: "csv" | "json") => {
-    const url = getExportUrl(format, type);
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-    
-    // Fetch directly with auth header or trigger download
-    fetch(url, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Export failed");
-        return res.blob();
-      })
-      .then((blob) => {
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = `udemy-courses-${type}-${Date.now()}.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(downloadUrl);
-        toast.success(`Exported as ${format.toUpperCase()}`);
-      })
-      .catch((err) => {
-        toast.error("Export failed: " + (err.message || "Unknown error"));
-      });
+  const handleExport = async (format: "csv" | "json") => {
+    try {
+      await exportCourses(format, type);
+      toast.success(`Exported as ${format.toUpperCase()}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      toast.error("Export failed: " + message);
+    }
   };
 
   return (

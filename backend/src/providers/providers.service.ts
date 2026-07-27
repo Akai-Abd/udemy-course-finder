@@ -68,22 +68,26 @@ export class ProvidersService {
 
       // Async lifecycle completion simulation
       setTimeout(async () => {
-        const found = Math.floor(Math.random() * 8) + 8;
-        const accepted = Math.floor(found * 0.85);
-        const rejected = found - accepted;
+        try {
+          const found = Math.floor(Math.random() * 8) + 8;
+          const accepted = Math.floor(found * 0.85);
+          const rejected = found - accepted;
 
-        await this.providersRepository.update(providerId, {
-          lastStatus: 'SUCCESS',
-          lastRunAt: new Date(),
-        });
-        await this.providersRepository.updateLog(log.id, {
-          status: 'SUCCESS',
-          message: `Scrape completed for ${provider.name}. ${accepted} new coupon links ingested.`,
-          coursesFound: found,
-          coursesAccepted: accepted,
-          coursesRejected: rejected,
-          finishedAt: new Date(),
-        });
+          await this.providersRepository.update(providerId, {
+            lastStatus: 'SUCCESS',
+            lastRunAt: new Date(),
+          });
+          await this.providersRepository.updateLog(log.id, {
+            status: 'SUCCESS',
+            message: `Scrape completed for ${provider.name}. ${accepted} new coupon links ingested.`,
+            coursesFound: found,
+            coursesAccepted: accepted,
+            coursesRejected: rejected,
+            finishedAt: new Date(),
+          });
+        } catch (error) {
+          this.logger.error(`Failed to complete scrape lifecycle for ${provider.name}: ${error}`);
+        }
       }, 4000);
     } else {
       const allProviders = await this.findAll();
@@ -106,22 +110,26 @@ export class ProvidersService {
           });
 
           setTimeout(async () => {
-            const found = Math.floor(Math.random() * 10) + 10;
-            const accepted = Math.floor(found * 0.85);
-            const rejected = found - accepted;
+            try {
+              const found = Math.floor(Math.random() * 10) + 10;
+              const accepted = Math.floor(found * 0.85);
+              const rejected = found - accepted;
 
-            await this.providersRepository.update(p.id, {
-              lastStatus: 'SUCCESS',
-              lastRunAt: new Date(),
-            });
-            await this.providersRepository.updateLog(log.id, {
-              status: 'SUCCESS',
-              message: `Scrape completed for ${p.name}.`,
-              coursesFound: found,
-              coursesAccepted: accepted,
-              coursesRejected: rejected,
-              finishedAt: new Date(),
-            });
+              await this.providersRepository.update(p.id, {
+                lastStatus: 'SUCCESS',
+                lastRunAt: new Date(),
+              });
+              await this.providersRepository.updateLog(log.id, {
+                status: 'SUCCESS',
+                message: `Scrape completed for ${p.name}.`,
+                coursesFound: found,
+                coursesAccepted: accepted,
+                coursesRejected: rejected,
+                finishedAt: new Date(),
+              });
+            } catch (error) {
+              this.logger.error(`Failed to complete scrape lifecycle for ${p.name}: ${error}`);
+            }
           }, 5000);
         }
       }
@@ -160,18 +168,22 @@ export class ProvidersService {
     });
 
     setTimeout(async () => {
-      await this.providersRepository.update(providerId, {
-        lastStatus: 'SUCCESS',
-        lastRunAt: new Date(),
-      });
-      await this.providersRepository.updateLog(log.id, {
-        status: 'SUCCESS',
-        message: `Provider ${provider.name} connectivity test passed (200 OK).`,
-        coursesFound: 10,
-        coursesAccepted: 10,
-        coursesRejected: 0,
-        finishedAt: new Date(),
-      });
+      try {
+        await this.providersRepository.update(providerId, {
+          lastStatus: 'SUCCESS',
+          lastRunAt: new Date(),
+        });
+        await this.providersRepository.updateLog(log.id, {
+          status: 'SUCCESS',
+          message: `Provider ${provider.name} connectivity test passed (200 OK).`,
+          coursesFound: 10,
+          coursesAccepted: 10,
+          coursesRejected: 0,
+          finishedAt: new Date(),
+        });
+      } catch (error) {
+        this.logger.error(`Failed to complete test lifecycle for ${provider.name}: ${error}`);
+      }
     }, 2500);
 
     this.logger.log(`Test enqueued for provider ${providerId}, job: ${jobId}`);
@@ -204,28 +216,28 @@ export class ProvidersService {
     });
 
     setTimeout(async () => {
-      const found = Math.floor(Math.random() * 6) + 8;
-      const accepted = Math.floor(found * 0.9);
-      const rejected = found - accepted;
+      try {
+        const found = Math.floor(Math.random() * 6) + 8;
+        const accepted = Math.floor(found * 0.9);
+        const rejected = found - accepted;
 
-      await this.providersRepository.update(providerId, {
-        lastStatus: 'SUCCESS',
-        lastRunAt: new Date(),
-      });
-      await this.providersRepository.updateLog(log.id, {
-        status: 'SUCCESS',
-        message: `Retry completed successfully for ${provider.name}.`,
-        coursesFound: found,
-        coursesAccepted: accepted,
-        coursesRejected: rejected,
-        finishedAt: new Date(),
-      });
+        await this.providersRepository.update(providerId, {
+          lastStatus: 'SUCCESS',
+          lastRunAt: new Date(),
+        });
+        await this.providersRepository.updateLog(log.id, {
+          status: 'SUCCESS',
+          message: `Retry completed successfully for ${provider.name}.`,
+          coursesFound: found,
+          coursesAccepted: accepted,
+          coursesRejected: rejected,
+          finishedAt: new Date(),
+        });
+      } catch (error) {
+        this.logger.error(`Failed to complete retry lifecycle for ${provider.name}: ${error}`);
+      }
     }, 3500);
 
     return { message: `Retry initiated for ${provider.name}` };
-  }
-
-  async countEnabled(): Promise<number> {
-    return this.providersRepository.countEnabled();
   }
 }

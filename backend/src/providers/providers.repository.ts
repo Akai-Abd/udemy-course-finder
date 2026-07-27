@@ -62,29 +62,18 @@ export class ProvidersRepository {
   }
 
   async getStats(providerId: string) {
-    const [
-      totalRuns,
-      successRuns,
-      totalFound,
-      totalAccepted,
-      totalRejected,
-      lastLog,
-    ] = await Promise.all([
+    const [totalRuns, successRuns, aggregates, lastLog] = await Promise.all([
       this.prisma.log.count({ where: { providerId } }),
       this.prisma.log.count({
         where: { providerId, status: 'SUCCESS' },
       }),
       this.prisma.log.aggregate({
         where: { providerId },
-        _sum: { coursesFound: true },
-      }),
-      this.prisma.log.aggregate({
-        where: { providerId },
-        _sum: { coursesAccepted: true },
-      }),
-      this.prisma.log.aggregate({
-        where: { providerId },
-        _sum: { coursesRejected: true },
+        _sum: {
+          coursesFound: true,
+          coursesAccepted: true,
+          coursesRejected: true,
+        },
       }),
       this.prisma.log.findFirst({
         where: { providerId },
@@ -94,22 +83,15 @@ export class ProvidersRepository {
 
     return {
       totalRuns,
-      successRuns,
       successfulRuns: successRuns,
       failedRuns: totalRuns - successRuns,
       successRate: totalRuns > 0 ? (successRuns / totalRuns) * 100 : 0,
-      coursesFound: totalFound._sum.coursesFound ?? 0,
-      totalCoursesFound: totalFound._sum.coursesFound ?? 0,
-      coursesAccepted: totalAccepted._sum.coursesAccepted ?? 0,
-      totalCoursesAccepted: totalAccepted._sum.coursesAccepted ?? 0,
-      coursesRejected: totalRejected._sum.coursesRejected ?? 0,
-      totalCoursesRejected: totalRejected._sum.coursesRejected ?? 0,
+      totalCoursesFound: aggregates._sum.coursesFound ?? 0,
+      totalCoursesAccepted: aggregates._sum.coursesAccepted ?? 0,
+      totalCoursesRejected: aggregates._sum.coursesRejected ?? 0,
       lastRunAt: lastLog?.startedAt ?? null,
       lastStatus: lastLog?.status ?? null,
     };
   }
-
-  async countEnabled(): Promise<number> {
-    return this.prisma.provider.count({ where: { isEnabled: true } });
-  }
 }
+

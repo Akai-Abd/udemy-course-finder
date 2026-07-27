@@ -1,16 +1,20 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 @Injectable()
-export class TokenBlacklistService implements OnModuleInit {
+export class TokenBlacklistService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TokenBlacklistService.name);
   private redis: Redis | null = null;
   private readonly memoryBlacklist = new Map<string, number>();
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(private readonly configService: ConfigService) {}
 
   onModuleInit() {
+    // Clean up expired entries every 5 minutes to prevent memory leaks
+    this.cleanupInterval = setInterval(() => this.cleanupExpired(), 5 * 60 * 1000);
+
     if (process.env.ENABLE_REDIS === 'false') {
       this.logger.log('Redis is disabled. Using in-memory token blacklist.');
       return;
@@ -44,6 +48,12 @@ export class TokenBlacklistService implements OnModuleInit {
         });
     } catch {
       this.logger.warn('Using in-memory token blacklist fallback.');
+    }
+  }
+
+  onModuleDestroy() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
     }
   }
 
@@ -85,5 +95,14 @@ export class TokenBlacklistService implements OnModuleInit {
       }
     }
     return false;
+  }
+
+  private cleanupExpired(): void {
+    const now = Date.now();
+    for (const [jti, expiresAt] of this.memoryBlacklist) {
+      if (now >= expiresAt) {
+        this.memoryBlacklist.delete(jti);
+      }
+    }
   }
 }

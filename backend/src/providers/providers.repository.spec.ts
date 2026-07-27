@@ -113,10 +113,9 @@ describe('ProvidersRepository', () => {
       prisma.log.count
         .mockResolvedValueOnce(10) // totalRuns
         .mockResolvedValueOnce(8); // successRuns
-      prisma.log.aggregate
-        .mockResolvedValueOnce({ _sum: { coursesFound: 100 } })
-        .mockResolvedValueOnce({ _sum: { coursesAccepted: 80 } })
-        .mockResolvedValueOnce({ _sum: { coursesRejected: 20 } });
+      prisma.log.aggregate.mockResolvedValueOnce({
+        _sum: { coursesFound: 100, coursesAccepted: 80, coursesRejected: 20 },
+      });
       prisma.log.findFirst.mockResolvedValue({
         startedAt: new Date('2026-01-01'),
         status: 'SUCCESS',
@@ -125,15 +124,11 @@ describe('ProvidersRepository', () => {
       const result = await repository.getStats('p1');
 
       expect(result.totalRuns).toBe(10);
-      expect(result.successRuns).toBe(8);
       expect(result.successfulRuns).toBe(8);
       expect(result.failedRuns).toBe(2);
       expect(result.successRate).toBe(80);
-      expect(result.coursesFound).toBe(100);
       expect(result.totalCoursesFound).toBe(100);
-      expect(result.coursesAccepted).toBe(80);
       expect(result.totalCoursesAccepted).toBe(80);
-      expect(result.coursesRejected).toBe(20);
       expect(result.totalCoursesRejected).toBe(20);
     });
 
@@ -146,19 +141,6 @@ describe('ProvidersRepository', () => {
 
       expect(result.successRate).toBe(0);
       expect(result.lastRunAt).toBeNull();
-    });
-  });
-
-  describe('countEnabled', () => {
-    it('should count enabled providers', async () => {
-      prisma.provider.count.mockResolvedValue(7);
-
-      const result = await repository.countEnabled();
-
-      expect(result).toBe(7);
-      expect(prisma.provider.count).toHaveBeenCalledWith({
-        where: { isEnabled: true },
-      });
     });
   });
 });

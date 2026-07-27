@@ -184,21 +184,4 @@ describe('CoursesRepository', () => {
       );
     });
   });
-
-  describe('findRecent', () => {
-    it('should return most recent courses', async () => {
-      const mockCourses = [{ id: 'c1' }, { id: 'c2' }];
-      prisma.course.findMany.mockResolvedValue(mockCourses);
-
-      const result = await repository.findRecent(5);
-
-      expect(result).toEqual(mockCourses);
-      expect(prisma.course.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          take: 5,
-          orderBy: { createdAt: 'desc' },
-        }),
-      );
-    });
-  });
 });

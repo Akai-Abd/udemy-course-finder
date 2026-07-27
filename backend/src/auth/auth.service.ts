@@ -12,16 +12,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { UsersService } from '../users/users.service';
 import { LoginDto, TokenResponseDto, RegisterDto } from './dto';
 import { TokenBlacklistService } from './token-blacklist.service';
+import type { JwtPayload } from './strategies/jwt.strategy';
 import type { StringValue } from 'ms';
-
-interface JwtPayload {
-  sub: string;
-  email: string;
-  role: string;
-  jti?: string;
-  exp?: number;
-  iat?: number;
-}
 
 @Injectable()
 export class AuthService {

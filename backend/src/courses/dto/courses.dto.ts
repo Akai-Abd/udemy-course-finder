@@ -4,10 +4,8 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum CourseSortBy {
   NEWEST = 'newest',
-  EXPIRING = 'expiring',
   EXPIRING_SOON = 'expiring_soon',
   RATING = 'rating',
-  TITLE = 'title',
   ALPHABETICAL = 'alphabetical',
 }
 
@@ -41,11 +39,6 @@ export class ListCoursesDto {
   @IsEnum(CourseSortBy)
   sortBy?: CourseSortBy = CourseSortBy.NEWEST;
 
-  @ApiPropertyOptional({ enum: CourseSortBy })
-  @IsOptional()
-  @IsEnum(CourseSortBy)
-  sort?: CourseSortBy;
-
   @ApiPropertyOptional({
     description: 'Filter by expiry: active, expired, all',
   })
@@ -66,9 +59,4 @@ export class SearchCoursesDto extends ListCoursesDto {
   @IsOptional()
   @IsString()
   query?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  q?: string;
 }

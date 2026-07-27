@@ -5,6 +5,7 @@ import { ListCoursesDto, SearchCoursesDto } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisCacheService } from '../common/cache/redis-cache.service';
 import { EmbeddingsService } from '../embeddings/embeddings.service';
+import { getActiveFilter } from '../common/helpers/active-filter.helper';
 
 export function mapCourseToResponse(course: any, targetProviderId?: string): any {
   if (!course) return null;
@@ -84,7 +85,7 @@ export class CoursesService {
       limit: dto.limit ?? 20,
       categoryId: dto.categoryId,
       providerId: dto.providerId,
-      sortBy: dto.sortBy ?? dto.sort,
+      sortBy: dto.sortBy,
       expiryStatus: dto.expiryStatus,
       language: dto.language,
     });
@@ -103,14 +104,13 @@ export class CoursesService {
   }
 
   async search(dto: SearchCoursesDto): Promise<PaginatedResult<Course>> {
-    const searchText = dto.query || dto.q;
     const result = await this.coursesRepository.search({
-      query: searchText,
+      query: dto.query,
       page: dto.page ?? 1,
       limit: dto.limit ?? 20,
       categoryId: dto.categoryId,
       providerId: dto.providerId,
-      sortBy: dto.sortBy ?? dto.sort,
+      sortBy: dto.sortBy,
       expiryStatus: dto.expiryStatus,
       language: dto.language,
     });
@@ -149,24 +149,24 @@ export class CoursesService {
       activeSources,
     };
 
-    await this.cache.set(cacheKey, result, 60); // cache for 60 seconds
+    await this.cache.set(cacheKey, result, 60);
     return result;
   }
 
   async getRecommendations(userId: string): Promise<Course[]> {
-    // 1. Fetch user's favorites to extract categories
+    // Single fetch for favorites — get both courseId and categoryId
     const favorites = await this.prisma.favorite.findMany({
       where: { userId },
-      select: { course: { select: { categoryId: true } } },
+      select: { courseId: true, course: { select: { categoryId: true } } },
     });
 
-    // 2. Fetch user's history to extract categories
+    // Single fetch for history — get both courseId and categoryId
     const history = await this.prisma.history.findMany({
       where: { userId },
-      select: { course: { select: { categoryId: true } } },
+      select: { courseId: true, course: { select: { categoryId: true } } },
     });
 
-    // Combine and count category occurrences with weighted values
+    // Build category weights and exclusion IDs from the same data
     const categoryCounts: Record<string, number> = {};
     const addCount = (catId: string | null, weight: number) => {
       if (catId) {
@@ -174,44 +174,31 @@ export class CoursesService {
       }
     };
 
-    favorites.forEach((f) => addCount(f.course?.categoryId, 3));
-    history.forEach((h) => addCount(h.course?.categoryId, 1));
+    const excludedCourseIds = new Set<string>();
 
-    // Sort categories by weight descending
+    favorites.forEach((f) => {
+      addCount(f.course?.categoryId, 3);
+      excludedCourseIds.add(f.courseId);
+    });
+    history.forEach((h) => {
+      addCount(h.course?.categoryId, 1);
+      excludedCourseIds.add(h.courseId);
+    });
+
     const sortedCategories = Object.entries(categoryCounts)
       .sort((a, b) => b[1] - a[1])
       .map(([catId]) => catId);
 
-    // Get excluded course IDs (already favorited or visited in history)
-    const [favCourses, histCourses] = await Promise.all([
-      this.prisma.favorite.findMany({
-        where: { userId },
-        select: { courseId: true },
-      }),
-      this.prisma.history.findMany({
-        where: { userId },
-        select: { courseId: true },
-      }),
-    ]);
-    const excludedCourseIds = [
-      ...new Set([
-        ...favCourses.map((f) => f.courseId),
-        ...histCourses.map((h) => h.courseId),
-      ]),
-    ];
+    const excludedIds = [...excludedCourseIds];
+    const activeFilter = getActiveFilter();
 
     let recommended: Course[] = [];
-    const activeFilter = {
-      isActive: true,
-      isFree: true,
-      OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
-    };
 
     if (sortedCategories.length > 0) {
       recommended = await this.prisma.course.findMany({
         where: {
           language: 'English',
-          id: { notIn: excludedCourseIds },
+          id: { notIn: excludedIds },
           categoryId: { in: sortedCategories },
           couponSources: { some: activeFilter },
         },
@@ -229,14 +216,14 @@ export class CoursesService {
       });
     }
 
-    // 4. Backfill if we have fewer than 10 recommendations
+    // Backfill if we have fewer than 10 recommendations
     if (recommended.length < 10) {
       const needed = 10 - recommended.length;
       const alreadyRecommendedIds = recommended.map((r) => r.id);
       const backfill = await this.prisma.course.findMany({
         where: {
           language: 'English',
-          id: { notIn: [...excludedCourseIds, ...alreadyRecommendedIds] },
+          id: { notIn: [...excludedIds, ...alreadyRecommendedIds] },
           couponSources: { some: activeFilter },
         },
         orderBy: [{ rating: 'desc' }, { createdAt: 'desc' }],
@@ -260,7 +247,7 @@ export class CoursesService {
   async semanticSearch(
     dto: SearchCoursesDto,
   ): Promise<PaginatedResult<Course>> {
-    const searchText = dto.query || dto.q;
+    const searchText = dto.query;
     if (!searchText) {
       return this.search(dto);
     }
@@ -273,17 +260,27 @@ export class CoursesService {
       const queryEmbedding = await this.embeddingsService.generate(searchText);
       const vectorSql = `[${queryEmbedding.join(',')}]`;
 
-      const similarityRows = await this.prisma.$queryRawUnsafe<any[]>(
-        `SELECT ce.course_id, 1 - (ce.embedding <=> $1::vector) as similarity
-         FROM course_embeddings ce
-         JOIN courses c ON c.id = ce.course_id
-         ORDER BY ce.embedding <=> $1::vector ASC
-         LIMIT $2 OFFSET $3`,
-        vectorSql,
-        limit,
-        skip,
-      );
+      // Get total matching count and paginated results in parallel
+      const [similarityRows, totalResult] = await Promise.all([
+        this.prisma.$queryRawUnsafe<any[]>(
+          `SELECT ce.course_id, 1 - (ce.embedding <=> $1::vector) as similarity
+           FROM course_embeddings ce
+           JOIN courses c ON c.id = ce.course_id
+           ORDER BY ce.embedding <=> $1::vector ASC
+           LIMIT $2 OFFSET $3`,
+          vectorSql,
+          limit,
+          skip,
+        ),
+        this.prisma.$queryRawUnsafe<[{ count: bigint }]>(
+          `SELECT COUNT(*)::bigint as count
+           FROM course_embeddings ce
+           JOIN courses c ON c.id = ce.course_id`,
+          vectorSql,
+        ),
+      ]);
 
+      const total = Number(totalResult[0]?.count ?? 0);
       const courseIds = similarityRows.map((r) => r.course_id);
 
       if (courseIds.length === 0) {
@@ -324,8 +321,6 @@ export class CoursesService {
           };
         })
         .filter(Boolean) as any[];
-
-      const total = await this.prisma.courseEmbedding.count();
 
       return {
         data: sortedCourses.map((c) => mapCourseToResponse(c, dto.providerId)),
@@ -437,4 +432,3 @@ export class CoursesService {
     };
   }
 }
-

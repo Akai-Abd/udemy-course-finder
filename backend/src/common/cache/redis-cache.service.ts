@@ -1,19 +1,23 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 @Injectable()
-export class RedisCacheService implements OnModuleInit {
+export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisCacheService.name);
   private redis: Redis | null = null;
   private readonly memoryCache = new Map<
     string,
     { value: unknown; expiresAt: number }
   >();
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(private readonly configService: ConfigService) {}
 
   onModuleInit() {
+    // Clean up expired entries every 5 minutes to prevent memory leaks
+    this.cleanupInterval = setInterval(() => this.cleanupExpired(), 5 * 60 * 1000);
+
     if (process.env.ENABLE_REDIS === 'false') {
       this.logger.log('Redis is disabled. Using in-memory cache.');
       return;
@@ -47,6 +51,12 @@ export class RedisCacheService implements OnModuleInit {
         });
     } catch {
       this.logger.warn('Using in-memory cache fallback.');
+    }
+  }
+
+  onModuleDestroy() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
     }
   }
 
@@ -140,6 +150,15 @@ export class RedisCacheService implements OnModuleInit {
         this.logger.warn(
           `Redis cache invalidatePattern failed for ${pattern}: ${error}`,
         );
+      }
+    }
+  }
+
+  private cleanupExpired(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.memoryCache) {
+      if (now >= entry.expiresAt) {
+        this.memoryCache.delete(key);
       }
     }
   }

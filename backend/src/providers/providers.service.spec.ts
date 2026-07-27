@@ -28,7 +28,6 @@ describe('ProvidersService', () => {
       update: jest.fn(),
       findLogs: jest.fn(),
       getStats: jest.fn(),
-      countEnabled: jest.fn(),
       createLog: jest.fn().mockImplementation((data) =>
         Promise.resolve({
           id: 'log-1',

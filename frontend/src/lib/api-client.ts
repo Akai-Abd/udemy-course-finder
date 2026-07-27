@@ -322,8 +322,25 @@ export const usersApi = {
 };
 
 // Export
-export const getExportUrl = (format: "csv" | "json", type: "all" | "favorites" = "all") => {
-  return `${API_BASE_URL}/courses/export?format=${format}&type=${type}`;
+export const exportCourses = async (format: "csv" | "json", type: "all" | "favorites" = "all") => {
+  const response = await apiClient.get("/courses/export", {
+    params: { format, type },
+    responseType: "blob",
+  });
+
+  const contentDisposition = response.headers["content-disposition"] as string | undefined;
+  const filenameMatch = contentDisposition?.match(/filename="?([^"]+)"?/);
+  const filename = filenameMatch?.[1] ?? `udemy-courses-${type}.${format}`;
+
+  const blob = new Blob([response.data as BlobPart], {
+    type: format === "json" ? "application/json" : "text/csv",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
-
-

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisCacheService } from '../common/cache/redis-cache.service';
+import { getActiveFilter } from '../common/helpers/active-filter.helper';
 
 @Injectable()
 export class AnalyticsService {
@@ -204,11 +205,7 @@ export class AnalyticsService {
   private async getCoursesByCategory(): Promise<
     { category: string; count: number }[]
   > {
-    const activeFilter = {
-      isActive: true,
-      isFree: true,
-      OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
-    };
+    const activeFilter = getActiveFilter();
     const results = await this.prisma.course.groupBy({
       by: ['categoryId'],
       _count: { id: true },
@@ -243,11 +240,7 @@ export class AnalyticsService {
   private async getCoursesByProvider(): Promise<
     { provider: string; count: number }[]
   > {
-    const activeFilter = {
-      isActive: true,
-      isFree: true,
-      OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
-    };
+    const activeFilter = getActiveFilter();
     const results = await this.prisma.couponSource.groupBy({
       by: ['providerId'],
       _count: { id: true },
