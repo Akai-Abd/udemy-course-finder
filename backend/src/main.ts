@@ -52,7 +52,7 @@ async function bootstrap() {
 
   // ───────────── Start ─────────────
   const port = process.env.BACKEND_PORT || 4000;
-  await app.listen(port, '::');
+  await app.listen(port, '0.0.0.0');
   logger.log(`🚀 Backend API running on http://localhost:${port}`);
   logger.log(`📚 Swagger docs at http://localhost:${port}/api`);
 }
