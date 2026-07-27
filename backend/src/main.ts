@@ -12,28 +12,15 @@ async function bootstrap() {
   const logger = app.get(Logger);
 
   // ───────────── Security ─────────────
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   // ───────────── CORS ─────────────
   app.enableCors({
-    origin: (
-      origin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void,
-    ) => {
-      // Allow requests with no origin (like mobile apps, curl) or any localhost/127.0.0.1 origin
-      if (!origin || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-        callback(null, true);
-      } else {
-        const allowed = process.env.CORS_ORIGIN
-          ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
-          : [];
-        if (allowed.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(null, true);
-        }
-      }
-    },
+    origin: true,
     credentials: true,
   });
 
@@ -65,7 +52,7 @@ async function bootstrap() {
 
   // ───────────── Start ─────────────
   const port = process.env.BACKEND_PORT || 4000;
-  await app.listen(port, '0.0.0.0');
+  await app.listen(port, '::');
   logger.log(`🚀 Backend API running on http://localhost:${port}`);
   logger.log(`📚 Swagger docs at http://localhost:${port}/api`);
 }
