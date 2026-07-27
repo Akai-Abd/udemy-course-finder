@@ -129,6 +129,34 @@ docker compose up -d
 
 ---
 
+### ❓ Troubleshooting & Common Issues
+
+#### 1️⃣ Port Conflict (`EADDRINUSE: address already in use :::4000` or `:::3000`)
+- **Root Cause**: An existing NestJS backend, Next.js frontend, or zombie process is already using port `4000` or `3000`.
+- **Solution**: Free up the port using `fuser` or `npx kill-port`:
+  ```bash
+  # Free up Backend port 4000
+  fuser -k 4000/tcp  # Or: npx kill-port 4000
+
+  # Free up Frontend port 3000
+  fuser -k 3000/tcp  # Or: npx kill-port 3000
+  ```
+
+#### 2️⃣ `Cannot GET /` on `http://localhost:4000`
+- **Root Cause**: NestJS is a headless REST API server and does not render HTML on the root `/` path.
+- **Solution**:
+  - **Swagger API Docs & Testing UI**: Navigate to [http://localhost:4000/api](http://localhost:4000/api)
+  - **User Dashboard**: Navigate to [http://localhost:3000](http://localhost:3000)
+
+#### 3️⃣ `❌ Failed to initialize embedding pipeline`
+- **Root Cause**: npm v10+ blocked native postinstall scripts (`onnxruntime-node`), or host machine had no internet access to download the ~90MB Hugging Face ONNX model on initial start.
+- **Solution**: Run the approval and rebuild commands in `backend/`:
+  ```bash
+  cd backend
+  npm install-scripts approve --all
+  npm rebuild onnxruntime-node
+  ```
+
 ## 🛠️ Troubleshooting & Known Issues
 
 If you encounter issues during installation or runtime, refer to the resolutions below:
