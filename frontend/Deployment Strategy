@@ -1,0 +1,163 @@
+# Free Deployment Strategy — Udemy Course Finder
+
+## Your Stack (4 services)
+
+| Component | Tech | What It Does |
+|-----------|------|-------------|
+| **Frontend** | Next.js 16, Tailwind, Radix UI | Dashboard UI |
+| **Backend** | NestJS 11, Prisma, BullMQ | API + job orchestration |
+| **Scraper** | Python, BeautifulSoup, Redis queue | Scrapes Udemy courses |
+| **Data** | PostgreSQL (pgvector) + Redis | Storage + job queue |
+
+---
+
+## The Simplest Free Deploy
+
+### 1. Frontend → [Vercel](https://vercel.com) (free tier)
+
+**Why**: It's Next.js. Vercel built Next.js. Zero config.
+
+- Connect your GitHub repo
+- Set root directory to `frontend/`
+- Add env var: `NEXT_PUBLIC_API_URL=https://your-backend.onrender.com`
+- Done. Auto-deploys on push.
+
+**Free tier gives you**: Unlimited deploys, edge CDN, preview URLs per PR, 100 GB bandwidth/mo.
+
+---
+
+### 2. Backend + Scraper → [Render](https://render.com) (free tier)
+
+**Why**: Supports Docker natively, free PostgreSQL, free Redis — all your infra in one place.
+
+#### Backend (Web Service)
+- New → Web Service → connect repo
+- Root directory: `backend/`
+- Build: `npm ci && npx prisma generate && npm run build`
+- Start: `npm run start:prod`
+- Add env vars (DATABASE_URL, REDIS_URL, JWT secrets, etc.)
+
+#### Scraper (Background Worker)
+- New → Background Worker → connect repo
+- Root directory: `scraper/`
+- Build: `pip install -r requirements.txt`
+- Start: `python run_all.py`
+- Add env vars (DATABASE_URL, REDIS_URL, SCRAPE_INTERVAL_MINUTES, etc.)
+
+> [!IMPORTANT]
+> Render free tier services **spin down after 15 min of inactivity** and take ~30-50s to cold start. This is fine for the scraper (it runs on a schedule anyway) and acceptable for a side project backend.
+
+---
+
+### 3. PostgreSQL → [Render](https://render.com) (free tier) or [Neon](https://neon.tech) (free tier)
+
+| | Render Postgres | Neon Postgres |
+|--|----------------|---------------|
+| Storage | 1 GB | 0.5 GB |
+| Expiry | 90 days then deleted | No expiry |
+| pgvector | ✅ Yes | ✅ Yes |
+| Sleep | No | Auto-scales to zero |
+
+> [!TIP]
+> **Recommendation: Neon**. No 90-day deletion. pgvector supported. Generous free tier (0.5 GB storage, 190 compute hours/mo). Set your `DATABASE_URL` to the Neon connection string.
+
+---
+
+### 4. Redis → [Upstash](https://upstash.com) (free tier)
+
+**Why**: Only free serverless Redis that doesn't expire.
+
+- 10,000 commands/day free
+- 256 MB storage
+- REST + standard Redis protocol
+- Perfect for BullMQ job queues at low volume
+
+Set `REDIS_URL=rediss://default:xxx@xxx.upstash.io:6379`
+
+> [!NOTE]
+> BullMQ works with Upstash Redis. Use the standard `redis://` connection URL (Upstash provides it). The 10K commands/day limit is plenty for a scraper that runs a few times daily.
+
+---
+
+## Final Architecture
+
+```
+┌─────────────────┐     ┌──────────────────────┐
+│  Vercel (free)  │────▶│  Render Backend (free)│
+│  Next.js UI     │     │  NestJS API           │
+└─────────────────┘     └──────┬───────┬────────┘
+                               │       │
+                    ┌──────────▼┐  ┌───▼──────────┐
+                    │ Neon (free)│  │ Upstash (free)│
+                    │ Postgres   │  │ Redis         │
+                    └──────────▲┘  └───▲──────────┘
+                               │       │
+                        ┌──────┴───────┴────────┐
+                        │ Render Worker (free)   │
+                        │ Python Scraper         │
+                        └────────────────────────┘
+```
+
+---
+
+## Env Vars Cheat Sheet
+
+### Vercel (Frontend)
+```
+NEXT_PUBLIC_API_URL=https://ucf-backend.onrender.com
+```
+
+### Render (Backend)
+```
+DATABASE_URL=postgresql://user:pass@ep-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require
+REDIS_URL=rediss://default:xxx@xxx.upstash.io:6379
+JWT_SECRET=<generate-one>
+JWT_REFRESH_SECRET=<generate-one>
+JWT_EXPIRY=15m
+JWT_REFRESH_EXPIRY=7d
+DEFAULT_ADMIN_EMAIL=admin@example.com
+DEFAULT_ADMIN_PASSWORD=<strong-password>
+BACKEND_PORT=4000
+NODE_ENV=production
+CORS_ORIGIN=https://your-app.vercel.app
+SCRAPE_INTERVAL_MINUTES=360
+```
+
+### Render (Scraper Worker)
+```
+DATABASE_URL=<same-neon-url>
+REDIS_URL=<same-upstash-url>
+SCRAPE_INTERVAL_MINUTES=360
+SCRAPE_DELAY_SECONDS=2
+LOG_LEVEL=INFO
+```
+
+---
+
+## Deploy Steps (15 min total)
+
+1. **Neon** → Create project → copy `DATABASE_URL`
+2. **Upstash** → Create Redis DB → copy `REDIS_URL`
+3. **Render** → Create Web Service (backend) → paste env vars → deploy
+4. **Render** → Create Background Worker (scraper) → paste env vars → deploy
+5. **Vercel** → Import repo → set `frontend/` as root → set `NEXT_PUBLIC_API_URL` → deploy
+6. Run `prisma migrate deploy` on Render backend (one-time, via Render Shell)
+
+> [!CAUTION]
+> **Don't skip**: After first deploy, open Render Shell on the backend service and run `npx prisma migrate deploy` to create your database tables. Also run the seed if needed: `npx prisma db seed`.
+
+---
+
+## Limits to Know
+
+| Service | Key Limit | Ceiling |
+|---------|-----------|---------|
+| Vercel | 100 GB bandwidth/mo | Way more than you need |
+| Render Web | Sleeps after 15 min idle | Upgrade to $7/mo Starter for always-on |
+| Render Worker | 750 free hours/mo | Enough for 1 worker 24/7 |
+| Neon | 0.5 GB storage, 190 compute-hr | Upgrade to $19/mo Pro |
+| Upstash | 10K commands/day | Upgrade to $10/mo Pay-as-you-go |
+
+> [!TIP]
+> This entire stack costs **$0/mo** and handles a side project comfortably. When you outgrow it, each service has a clear paid upgrade path with no migration needed.
+

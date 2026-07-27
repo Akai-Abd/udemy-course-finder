@@ -1,9 +1,9 @@
 # Udemy Course Finder — Production Requirement Document
 
-**Version:** 1.0  
+**Version:** 1.0.3  
 **Author:** Akai  
 **License:** MIT  
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-07-28
 
 ---
 
@@ -238,7 +238,8 @@ Setting (standalone key-value)
 ## 6. REST API Specification
 
 **Base URL:** `http://localhost:4000` (dev) / `http://localhost:4001` (Docker)  
-**Swagger Docs:** `/api`
+**Swagger Docs:** `/api`  
+**CORS:** Permissive (`origin: true`) — all origins allowed with credentials
 
 ### 6.1 Auth (`/auth`)
 
@@ -257,8 +258,9 @@ Setting (standalone key-value)
 | `GET` | `/courses` | JWT | Paginated course listing with filters |
 | `GET` | `/courses/search` | JWT | Full-text search with pagination |
 | `GET` | `/courses/search/semantic` | JWT | AI-powered semantic search (pgvector) |
-| `GET` | `/courses/stats` | JWT | Course statistics (total, active, expiring) |
 | `GET` | `/courses/recommendations` | JWT | Personalized recommendations from history |
+| `GET` | `/courses/export` | JWT | Export courses as CSV or JSON (query: `format`, `type`) |
+| `GET` | `/courses/stats` | JWT | Course statistics (total, active, expiring) |
 | `GET` | `/courses/:id` | JWT | Single course details |
 | `GET` | `/courses/:id/similar` | JWT | Similar courses (vector similarity) |
 
@@ -428,13 +430,14 @@ class ScrapedCourse:
 | `/login` | Login | Email/password login form |
 | `/register` | Register | New user registration |
 | `/dashboard` | Dashboard | Overview stats, recent courses |
-| `/courses` | Courses | Browse, search, filter courses |
+| `/courses` | Courses | Browse, search, filter, export courses |
+| `/courses/:id` | Course Detail | Single course detail with similar courses |
 | `/favorites` | Favorites | User's saved courses |
 | `/history` | History | Browsing history |
 | `/analytics` | Analytics | Charts and statistics |
 | `/sources` | Sources | Provider management (scraper status, logs) |
 | `/settings` | Settings | App settings, notification prefs |
-| `/admin` | Admin | User management (RBAC, Admin only) |
+| `/admin/users` | Admin Users | User management (RBAC, Admin only) |
 
 ### 8.2 Key Frontend Features
 
@@ -444,6 +447,10 @@ class ScrapedCourse:
 - **Semantic Search:** Toggle between full-text and AI-powered vector search
 - **Real-time Notifications:** Bell icon with unread count badge
 - **Course Cards:** Thumbnail, title, instructor, rating, category, expiry countdown, favorite toggle
+- **Course Detail Page:** Single-course view with similar course recommendations
+- **Course Export:** Download courses as CSV or JSON (all or favorites)
+- **Course Filters:** Category, provider, expiry status, language filters with clear-all
+- **Grid/List View Toggle:** Switch between grid and compact list view modes
 - **Analytics Charts:** Time-series (courses/day), category breakdown (pie), provider comparison (bar)
 - **Provider Management:** Enable/disable, trigger scrape, test connectivity, view logs with stats
 
@@ -478,8 +485,8 @@ Logout
 | Token Blacklist | Refresh tokens blacklisted in Redis on logout |
 | Rate Limiting | 100 requests per 60 seconds per IP (ThrottlerGuard) |
 | Input Validation | class-validator whitelist + forbidNonWhitelisted |
-| HTTP Headers | Helmet middleware (CSP, HSTS, X-Frame-Options, etc.) |
-| CORS | Localhost auto-allowed; configurable via `CORS_ORIGIN` |
+| HTTP Headers | Helmet middleware (crossOriginResourcePolicy: cross-origin) |
+| CORS | Permissive (`origin: true`, `credentials: true`) — all origins allowed |
 | Role-Based Access | `@Roles(Role.ADMIN)` decorator for admin-only endpoints |
 
 ---
@@ -571,13 +578,14 @@ cd frontend && npm install && npm run dev
 | `SCRAPE_INTERVAL_MINUTES` | No | `30` | Auto-scrape frequency |
 | `SCRAPE_DELAY_SECONDS` | No | `2` | Delay between HTTP requests |
 | `VALIDATE_URLS` | No | `true` | Enable URL validation |
+| `VALIDATE_INTERVAL_MINUTES` | No | `60` | Coupon URL validation frequency (minutes) |
 | `LOG_LEVEL` | No | `INFO` | Python logging level |
 | `MAX_RETRIES` | No | `3` | HTTP retry count |
 | `DEFAULT_TIMEOUT_MS` | No | `30000` | HTTP timeout (ms) |
 | **Backend** ||||
 | `BACKEND_PORT` | No | `4000` | API server port |
 | `NODE_ENV` | No | `development` | `development` for pretty logs, `production` for JSON |
-| `CORS_ORIGIN` | No | `http://localhost:3001` | Allowed CORS origins (comma-separated) |
+| `ENABLE_REDIS` | No | — | Set to `false` for standalone SQLite mode (disables BullMQ) |
 | **Frontend** ||||
 | `NEXT_PUBLIC_API_URL` | No | `http://localhost:4000` | Backend API URL |
 
@@ -609,6 +617,29 @@ On first startup, `prisma db seed` creates:
 | Frontend type check | `cd frontend && npx tsc --noEmit` | TypeScript |
 | Frontend lint | `cd frontend && npm run lint` | ESLint |
 
+### 13.1 Test File Inventory
+
+**Backend Unit Tests:**
+- `courses.service.spec.ts` — Course service logic
+- `courses.repository.spec.ts` — Course repository queries
+- `jobs.service.spec.ts` — BullMQ job scheduling
+
+**Backend E2E Tests:**
+- `app.e2e-spec.ts` — App bootstrap
+- `auth.e2e-spec.ts` — Login, register, refresh, logout
+- `courses.e2e-spec.ts` — Course CRUD + search
+- `favorites.e2e-spec.ts` — Favorites CRUD
+- `history.e2e-spec.ts` — History tracking
+- `providers.e2e-spec.ts` — Provider management + scrape triggers
+
+**Scraper Tests:**
+- `test_pipeline.py` — Full pipeline integration
+- `test_providers.py` — Provider scraper classes
+- `test_url_parser.py` — URL parsing + course ID extraction
+- `test_language_filter.py` — Language detection filter
+- `test_expiry_validator.py` — Coupon URL validation
+- `test_store.py` — Database upsert logic
+
 ---
 
 ## 14. Project Structure
@@ -620,13 +651,23 @@ udemy-course-finder/
 │   │   ├── main.ts                 # Bootstrap: Swagger, CORS, Helmet, Pipes, Filters
 │   │   ├── app.module.ts           # Root module: all imports + global guards
 │   │   ├── auth/                   # JWT auth, Argon2 hashing, token blacklist
-│   │   ├── courses/                # Course CRUD, search, semantic search, recommendations
+│   │   ├── courses/                # Course CRUD, search, semantic search, export
+│   │   │   ├── courses.controller.ts
+│   │   │   ├── courses.service.ts
+│   │   │   ├── courses.repository.ts
+│   │   │   ├── courses.module.ts
+│   │   │   ├── courses.service.spec.ts
+│   │   │   ├── courses.repository.spec.ts
+│   │   │   └── dto/                # ListCoursesDto, SearchCoursesDto
 │   │   ├── providers/              # Provider management, scrape triggers
 │   │   ├── favorites/              # User favorites CRUD
 │   │   ├── history/                # Browsing history tracking
 │   │   ├── analytics/              # Dashboard analytics (overview, time-series)
 │   │   ├── categories/             # 13 course categories
-│   │   ├── jobs/                   # BullMQ job scheduling
+│   │   ├── jobs/                   # BullMQ job scheduling + standalone Python fallback
+│   │   │   ├── jobs.module.ts
+│   │   │   ├── jobs.service.ts
+│   │   │   └── jobs.service.spec.ts
 │   │   ├── embeddings/             # HuggingFace vector embeddings (384-dim)
 │   │   ├── notifications/          # In-app notifications + preferences
 │   │   ├── users/                  # Admin user management (RBAC)
@@ -634,46 +675,90 @@ udemy-course-finder/
 │   │   ├── prisma/                 # Prisma service module
 │   │   ├── config/                 # ConfigModule setup
 │   │   └── common/                 # Guards, filters, decorators, cache, logger
+│   │       ├── cache/              # Redis cache module
+│   │       ├── decorators/         # @Public(), @CurrentUser(), @Roles()
+│   │       ├── filters/            # GlobalExceptionFilter
+│   │       ├── guards/             # JwtAuthGuard
+│   │       ├── helpers/            # active-filter.helper.ts
+│   │       ├── interceptors/       # (reserved)
+│   │       └── logger/             # Pino logger module
 │   ├── prisma/
 │   │   ├── schema.prisma           # PostgreSQL schema (with pgvector)
 │   │   ├── schema.sqlite.prisma    # SQLite schema (local dev)
 │   │   ├── seed.ts                 # Seed: admin, 10 providers, 13 categories, 10 courses
 │   │   └── migrations/             # Prisma migrations
-│   ├── test/                       # E2E tests
+│   ├── test/                       # E2E tests (6 spec files)
+│   │   ├── app.e2e-spec.ts
+│   │   ├── auth.e2e-spec.ts
+│   │   ├── courses.e2e-spec.ts
+│   │   ├── favorites.e2e-spec.ts
+│   │   ├── history.e2e-spec.ts
+│   │   └── providers.e2e-spec.ts
 │   ├── Dockerfile                  # Multi-stage Node 20 build
 │   └── package.json
 ├── frontend/                       # Next.js 16 dashboard
 │   ├── src/
+│   │   ├── proxy.ts                # Next.js middleware (public path allowlisting)
 │   │   ├── app/
 │   │   │   ├── layout.tsx          # Root layout: fonts, theme, query provider
 │   │   │   ├── page.tsx            # Root redirect to /dashboard
 │   │   │   ├── globals.css         # TailwindCSS theme + custom styles
+│   │   │   ├── icon.png            # App icon
 │   │   │   ├── login/              # Login page
 │   │   │   ├── register/           # Registration page
+│   │   │   ├── api/                # API route directory stubs (empty)
 │   │   │   └── (dashboard)/        # Protected routes group
 │   │   │       ├── layout.tsx      # Sidebar + topbar shell
 │   │   │       ├── dashboard/      # Overview dashboard
 │   │   │       ├── courses/        # Course browse + search
+│   │   │       │   ├── page.tsx    # Course catalog (grid/list, filters, export)
+│   │   │       │   └── [id]/page.tsx # Course detail + similar courses
 │   │   │       ├── favorites/      # Saved courses
 │   │   │       ├── history/        # Browsing history
 │   │   │       ├── analytics/      # Charts + statistics
 │   │   │       ├── sources/        # Provider management
 │   │   │       ├── settings/       # App settings
-│   │   │       └── admin/          # User management (Admin)
+│   │   │       └── admin/users/    # User management (Admin RBAC)
 │   │   ├── components/
-│   │   │   ├── ui/                 # shadcn/ui primitives (button, card, dialog, etc.)
-│   │   │   ├── layout/             # Sidebar, topbar, mobile drawer
-│   │   │   ├── courses/            # Course card, grid, search bar
+│   │   │   ├── ui/                 # shadcn/ui primitives (17 components)
+│   │   │   │   ├── avatar.tsx, badge.tsx, button.tsx, card.tsx
+│   │   │   │   ├── dialog.tsx, dropdown-menu.tsx, input.tsx, label.tsx
+│   │   │   │   ├── scroll-area.tsx, select.tsx, separator.tsx, sheet.tsx
+│   │   │   │   ├── skeleton.tsx, switch.tsx, table.tsx, tabs.tsx
+│   │   │   │   └── tooltip.tsx
+│   │   │   ├── layout/             # Sidebar, header, notification bell
+│   │   │   │   ├── sidebar.tsx
+│   │   │   │   ├── header.tsx
+│   │   │   │   └── notification-bell.tsx
+│   │   │   ├── courses/            # Course card, filters, export button
+│   │   │   │   ├── course-card.tsx
+│   │   │   │   ├── course-filters.tsx
+│   │   │   │   └── export-button.tsx
 │   │   │   ├── analytics/          # Chart components (Recharts)
-│   │   │   ├── providers/          # Provider card, status, logs
-│   │   │   └── shared/             # Shared components (pagination, loading, etc.)
+│   │   │   │   ├── time-series-chart.tsx
+│   │   │   │   └── date-range-selector.tsx
+│   │   │   ├── providers/          # Query provider (React Query)
+│   │   │   │   └── query-provider.tsx
+│   │   │   └── shared/             # Shared reusable components
+│   │   │       ├── pagination.tsx
+│   │   │       ├── loading-state.tsx
+│   │   │       ├── empty-state.tsx
+│   │   │       └── error-state.tsx
 │   │   └── lib/
-│   │       ├── api-client.ts       # Axios client with JWT interceptors
-│   │       ├── hooks/              # React Query hooks
-│   │       └── utils.ts            # Utility functions
+│   │       ├── api-client.ts       # Axios client with JWT interceptors + all API functions
+│   │       ├── utils.ts            # cn() utility (clsx + tailwind-merge)
+│   │       └── hooks/              # React Query hooks (8 hook files)
+│   │           ├── use-auth.ts
+│   │           ├── use-courses.ts
+│   │           ├── use-favorites.ts
+│   │           ├── use-history.ts
+│   │           ├── use-analytics.ts
+│   │           ├── use-providers.ts
+│   │           ├── use-categories.ts
+│   │           └── use-notifications.ts
 │   ├── public/                     # Static assets
 │   ├── Dockerfile                  # 3-stage Alpine build (standalone output)
-│   ├── next.config.ts              # Standalone output, remote images
+│   ├── next.config.ts              # Standalone output, unoptimized images, remote patterns
 │   └── package.json
 ├── scraper/                        # Python scraping worker
 │   ├── src/
@@ -706,14 +791,23 @@ udemy-course-finder/
 │   │   │   ├── http_client.py      # requests-based HTTP client with retry + proxy
 │   │   │   ├── url_parser.py       # Udemy URL parsing + course ID extraction
 │   │   │   └── logging.py          # Structured logging setup
-│   │   └── scripts/                # One-off utility scripts
-│   ├── tests/                      # pytest test suite
+│   │   └── scripts/
+│   │       └── update_thumbnails.py # One-off thumbnail update utility
+│   ├── tests/                      # pytest test suite (6 test files + fixtures)
+│   │   ├── test_pipeline.py
+│   │   ├── test_providers.py
+│   │   ├── test_url_parser.py
+│   │   ├── test_language_filter.py
+│   │   ├── test_expiry_validator.py
+│   │   ├── test_store.py
+│   │   └── fixtures/
 │   ├── Dockerfile                  # Python 3.12-slim single-stage
 │   └── requirements.txt
 ├── docker-compose.yml              # Production orchestration (5 containers)
 ├── docker-compose.override.yml     # Dev mode (hot reload, volume mounts)
 ├── .env.example                    # Environment template
 ├── .gitignore
+├── CHANGELOG.md                    # Release changelog (v1.0.2, v1.0.3)
 ├── LICENSE                         # MIT License
 └── README.md                       # Project documentation
 ```
@@ -761,6 +855,47 @@ The scraper supports rotating HTTP proxies:
 - Format: JSON array or newline-separated URLs
 - Managed via Settings API or admin UI
 - Applied to all scraper HTTP requests via `HttpClient`
+
+---
+
+## 16. Current Project Status
+
+**Version:** 1.0.3 (released 2026-07-27)  
+**Status:** Feature-complete, not yet deployed  
+**Git branch:** `main` (5e5bdd3)
+
+### 16.1 What Is Fully Implemented
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Backend API (15 modules) | ✅ Complete | All endpoints functional, Swagger docs live |
+| Frontend Dashboard (10 pages) | ✅ Complete | All routes implemented with full UI |
+| Python Scraper (10 providers) | ✅ Complete | 6-stage pipeline, BullMQ consumer, scheduler |
+| Database Schema (15 tables) | ✅ Complete | PostgreSQL + pgvector, SQLite fallback |
+| Docker Compose (5 containers) | ✅ Complete | Production + dev override configs |
+| Authentication + RBAC | ✅ Complete | JWT, Argon2, refresh, blacklist, admin role |
+| Semantic Search (pgvector) | ✅ Complete | HuggingFace all-MiniLM-L6-v2 embeddings |
+| Course Export (CSV/JSON) | ✅ Complete | All courses or favorites |
+| Test Suites | ✅ Complete | 3 unit specs, 6 E2E specs, 6 pytest files |
+| SQLite Standalone Mode | ✅ Complete | `ENABLE_REDIS=false` for local dev without Docker |
+
+### 16.2 Known Issues / Technical Debt
+
+| Issue | Severity | Details |
+|-------|----------|--------|
+| CORS is fully permissive | Low | `origin: true` allows all origins; `CORS_ORIGIN` env var is defined but not used in `main.ts` |
+| Frontend `api/` route dirs empty | Info | Directory structure exists but contains no route handler files |
+| Scraper path resolution | Low | `jobs.service.ts` uses relative `path.resolve(__dirname, '../../../../scraper/run_all.py')` — path may break depending on deployment layout |
+| No CI/CD pipeline | Info | No GitHub Actions or deployment automation configured |
+| No deployment target configured | Info | Project runs locally only; deployment strategy under evaluation |
+
+### 16.3 Deployment Status
+
+Not yet deployed. Free-tier deployment options under evaluation:
+- **Frontend:** Vercel (Next.js native support)
+- **Backend:** Render (free web service)
+- **Database:** Supabase (PostgreSQL + pgvector)
+- **Scraper:** Render background worker or cron job
 
 ---
 
