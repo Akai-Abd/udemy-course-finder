@@ -139,10 +139,7 @@ docker compose up -d
   # Free up Backend port 4000 (NestJS)
   fuser -k 4000/tcp  # Linux native (or cross-platform: npx kill-port 4000)
   npx kill-port 4000
-<<<<<<< HEAD
-=======
 
->>>>>>> e1d1763 (docs: add npx kill-port commands to troubleshooting guide for port management)
   # Free up Frontend port 3000 (Next.js)
   fuser -k 3000/tcp  # Linux native (or cross-platform: npx kill-port 3000)
   npx kill-port 3000
