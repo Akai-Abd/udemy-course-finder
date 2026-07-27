@@ -132,14 +132,15 @@ docker compose up -d
 ### ❓ Troubleshooting & Common Issues
 
 #### 1️⃣ Port Conflict (`EADDRINUSE: address already in use :::4000` or `:::3000`)
-- **Root Cause**: An existing NestJS backend, Next.js frontend, or zombie process is already using port `4000` or `3000`.
-- **Solution**: Free up the port using `fuser` or `npx kill-port`:
+- **Symptom**: `Error: listen EADDRINUSE: address already in use :::4000` or `:::3000` when starting backend or frontend.
+- **Root Cause**: An existing NestJS backend, Next.js frontend, or zombie background process is occupying port `4000` or `3000`.
+- **Solution**: Kill the process occupying the backend or frontend port:
   ```bash
-  # Free up Backend port 4000
-  fuser -k 4000/tcp  # Or: npx kill-port 4000
+  # Free up Backend port 4000 (NestJS)
+  fuser -k 4000/tcp  # Linux native (or cross-platform: npx kill-port 4000)
 
-  # Free up Frontend port 3000
-  fuser -k 3000/tcp  # Or: npx kill-port 3000
+  # Free up Frontend port 3000 (Next.js)
+  fuser -k 3000/tcp  # Linux native (or cross-platform: npx kill-port 3000)
   ```
 
 #### 2️⃣ `Cannot GET /` on `http://localhost:4000`
@@ -156,6 +157,8 @@ docker compose up -d
   npm install-scripts approve --all
   npm rebuild onnxruntime-node
   ```
+
+---
 
 ## 🛠️ Troubleshooting & Known Issues
 
