@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.0.4] - 2026-11-19
+
+### Features
+
+- Add opened course tracking with visual `OPENED` tag badge, card de-emphasis, and `Open Again` action button
+- Add one-click **Hide Opened** toolbar filter toggle to hide previously clicked/enrolled courses
+- Add optimistic local history tracking in course catalog for instantaneous UI state updates
+- Add dedicated empty state with direct "Show All Courses" action when all courses on a page are opened
+- Add standalone live scraper runner (`scraper/run_all.py`) to run all 10 sources sequentially and sync directly to SQLite/PostgreSQL without Redis
+
+### Refactoring & Performance
+
+- Fix and harden scraper path resolution in NestJS `JobsService` using multi-candidate dynamic path search (`process.cwd()`, `__dirname`)
+- Format codebase and improve TypeScript strict type safety across backend and frontend services
+- Update course catalog search parameters and sorting options
+
+### Documentation
+
+- Add comprehensive cloud deployment strategies (`Deployment Strategy`, `Free Deployment Strategy`) for free-tier hosting (Render, Supabase, Vercel)
+- Update README and Product Requirements Document (`Udemy Course Finder.md`) with standalone scraper execution and opened course tracking
+
 ## [1.0.3] - 2026-07-27
 
 ### Bug Fixes
