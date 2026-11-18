@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Filter, SlidersHorizontal } from "lucide-react";
+import { X, Filter, SlidersHorizontal, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -20,10 +20,12 @@ interface CourseFiltersProps {
   providerId: string | undefined;
   expiryStatus: string;
   language: string;
+  hideClicked?: boolean;
   onCategoryChange: (categoryId: string | undefined) => void;
   onProviderChange: (providerId: string | undefined) => void;
   onExpiryChange: (status: string) => void;
   onLanguageChange: (lang: string) => void;
+  onHideClickedChange?: (hide: boolean) => void;
   onClearAll: () => void;
 }
 
@@ -32,10 +34,12 @@ export function CourseFilters({
   providerId,
   expiryStatus,
   language,
+  hideClicked = false,
   onCategoryChange,
   onProviderChange,
   onExpiryChange,
   onLanguageChange,
+  onHideClickedChange,
   onClearAll,
 }: CourseFiltersProps) {
   const { data: categories } = useCategories();
@@ -43,9 +47,16 @@ export function CourseFilters({
   const [expanded, setExpanded] = useState(false);
 
   const hasActiveFilters =
-    categoryId || providerId || expiryStatus !== "active" || language !== "English";
+    categoryId || providerId || expiryStatus !== "active" || language !== "English" || hideClicked;
 
   const activeFilters: { label: string; onRemove: () => void }[] = [];
+
+  if (hideClicked && onHideClickedChange) {
+    activeFilters.push({
+      label: "Hide Opened",
+      onRemove: () => onHideClickedChange(false),
+    });
+  }
 
   if (categoryId) {
     const cat = categories?.find((c) => c.id === categoryId);
@@ -80,7 +91,7 @@ export function CourseFilters({
   return (
     <div className="space-y-3">
       {/* Toggle + Dropdowns */}
-      <div className="flex items-center gap-2 select-none">
+      <div className="flex items-center gap-2 select-none flex-wrap">
         <Button
           variant={expanded ? "secondary" : "outline"}
           size="sm"
@@ -98,6 +109,23 @@ export function CourseFilters({
             </span>
           )}
         </Button>
+
+        {onHideClickedChange && (
+          <Button
+            variant={hideClicked ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => onHideClickedChange(!hideClicked)}
+            className={cn(
+              "gap-1.5 text-xs font-bold rounded-xl h-8.5 transition-all border-border/40",
+              hideClicked
+                ? "bg-sky-500/15 text-sky-600 border-sky-500/30 dark:text-sky-400 font-extrabold"
+                : "text-muted-foreground hover:bg-muted"
+            )}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            <span>Hide Opened</span>
+          </Button>
+        )}
 
         {hasActiveFilters && (
           <Button

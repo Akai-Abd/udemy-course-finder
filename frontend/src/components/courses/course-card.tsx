@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Star, ExternalLink, Heart, Clock, Flame, Share2 } from "lucide-react";
+import { Star, ExternalLink, Heart, Clock, Flame, Share2, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 interface CourseCardProps {
   course: Course;
   isFavorited?: boolean;
+  isClicked?: boolean;
   onToggleFavorite?: (courseId: string) => void;
   onGetCourse?: (course: Course) => void;
   compact?: boolean;
@@ -74,6 +75,7 @@ function useCountdown(expiresAt: string | null) {
 export function CourseCard({
   course,
   isFavorited = false,
+  isClicked = false,
   onToggleFavorite,
   onGetCourse,
   compact = false,
@@ -94,7 +96,12 @@ export function CourseCard({
 
   if (compact) {
     return (
-      <div className="group/compact flex items-center gap-3 rounded-xl border border-border/30 bg-card/40 p-3 backdrop-blur-sm transition-all duration-300 hover:bg-muted/50 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20">
+      <div
+        className={cn(
+          "group/compact flex items-center gap-3 rounded-xl border border-border/30 bg-card/40 p-3 backdrop-blur-sm transition-all duration-300 hover:bg-muted/50 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20",
+          isClicked && "opacity-75 border-sky-500/20 bg-sky-500/[0.02]"
+        )}
+      >
         {/* Thumbnail */}
         <div className="relative h-10 w-16 shrink-0 overflow-hidden rounded-lg bg-muted border border-border/20">
           {!imgError && course.thumbnailUrl ? (
@@ -123,6 +130,12 @@ export function CourseCard({
             </p>
           </Link>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            {isClicked && (
+              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5 bg-sky-500/10 text-sky-600 border border-sky-500/20 font-bold dark:text-sky-400">
+                <Check className="h-2.5 w-2.5" />
+                Opened
+              </Badge>
+            )}
             {course.provider && (
               <span className="text-[10px] text-muted-foreground font-medium">
                 {course.provider.name}
@@ -166,7 +179,12 @@ export function CourseCard({
   }
 
   return (
-    <Card className="group relative flex flex-col overflow-hidden rounded-2xl border-border/30 bg-card/45 backdrop-blur-md shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/20">
+    <Card
+      className={cn(
+        "group relative flex flex-col overflow-hidden rounded-2xl border-border/30 bg-card/45 backdrop-blur-md shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/20",
+        isClicked && "border-sky-500/25 bg-card/35 opacity-85 hover:opacity-100"
+      )}
+    >
       {/* Aspect ratio image container */}
       <div className="relative aspect-video w-full overflow-hidden bg-muted/40">
         {!imgError && course.thumbnailUrl ? (
@@ -210,6 +228,12 @@ export function CourseCard({
         {/* Expiry badge */}
         {/* Dynamic Tags */}
         <div className="absolute top-2 left-2 flex flex-col gap-1.5 items-start z-10">
+          {isClicked && (
+            <Badge className="bg-sky-600/90 hover:bg-sky-600 text-white font-extrabold border-0 text-[10px] gap-1 shadow-md shadow-sky-600/20 backdrop-blur-sm">
+              <Check className="h-3 w-3 stroke-[2.5]" />
+              OPENED
+            </Badge>
+          )}
           {(!course.isActive || isExpired) && (
             <Badge variant="destructive" className="text-[10px] font-extrabold shadow-md border-0 bg-red-600">
               Expired
@@ -276,12 +300,21 @@ export function CourseCard({
         <div className="flex items-center gap-2 pt-1">
           <Button
             size="sm"
-            variant="gradient"
-            className="flex-1 text-xs font-bold shadow-md shadow-primary/10 hover:shadow-primary/20"
+            variant={isClicked ? "outline" : "gradient"}
+            className={cn(
+              "flex-1 text-xs font-bold",
+              isClicked
+                ? "border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400"
+                : "shadow-md shadow-primary/10 hover:shadow-primary/20"
+            )}
             onClick={handleGetCourse}
           >
-            <ExternalLink className="h-3 w-3" />
-            Get Course
+            {isClicked ? (
+              <Check className="h-3 w-3 text-sky-500" />
+            ) : (
+              <ExternalLink className="h-3 w-3" />
+            )}
+            {isClicked ? "Open Again" : "Get Course"}
           </Button>
           <Button
             size="sm"

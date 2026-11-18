@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Search, LayoutGrid, List, Sparkles } from "lucide-react";
+import { Search, LayoutGrid, List, Sparkles, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +15,7 @@ import { useCourses, useSearchCourses } from "@/lib/hooks/use-courses";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Suspense } from "react";
 import { useFavorites, useToggleFavorite } from "@/lib/hooks/use-favorites";
-import { useRecordHistory } from "@/lib/hooks/use-history";
+import { useHistory, useRecordHistory } from "@/lib/hooks/use-history";
 import { useAnalyticsOverview } from "@/lib/hooks/use-analytics";
 import { CourseCard } from "@/components/courses/course-card";
 import { CourseFilters } from "@/components/courses/course-filters";
@@ -51,6 +51,8 @@ function CoursesContent() {
   const [expiryStatus, setExpiryStatus] = useState("active");
   const [language, setLanguage] = useState("English");
   const [isSemantic, setIsSemantic] = useState(false);
+  const [hideClicked, setHideClicked] = useState(false);
+  const [localClickedIds, setLocalClickedIds] = useState<Set<string>>(new Set());
 
   const setPage = useCallback(
     (pageOrFn: number | ((prev: number) => number)) => {
@@ -118,9 +120,22 @@ function CoursesContent() {
   const { data: favorites } = useFavorites();
   const { addFavorite, removeFavorite } = useToggleFavorite();
   const recordHistory = useRecordHistory();
+  const { data: historyRes } = useHistory(1, 1000);
+
+  const clickedIds = useMemo(() => {
+    const ids = new Set(historyRes?.data?.map((h) => h.courseId) ?? []);
+    localClickedIds.forEach((id) => ids.add(id));
+    return ids;
+  }, [historyRes, localClickedIds]);
 
   const displayData = isSearching ? searchData : coursesData;
   const loading = isSearching ? searchLoading : isLoading;
+
+  const coursesToRender = useMemo(() => {
+    const list = displayData?.data ?? [];
+    if (!hideClicked) return list;
+    return list.filter((c) => !clickedIds.has(c.id));
+  }, [displayData?.data, hideClicked, clickedIds]);
 
   const totalInDb = analytics?.totalCourses;
   const nonEnglishCount =
@@ -150,6 +165,7 @@ function CoursesContent() {
 
   const handleGetCourse = useCallback(
     (course: Course) => {
+      setLocalClickedIds((prev) => new Set(prev).add(course.id));
       recordHistory.mutate({ courseId: course.id, action: "CLICKED" });
       window.open(course.couponUrl, "_blank", "noopener,noreferrer");
     },
@@ -163,6 +179,7 @@ function CoursesContent() {
     setProviderId(undefined);
     setExpiryStatus("active");
     setLanguage("English");
+    setHideClicked(false);
     setPage(1);
   }, [setPage]);
 
@@ -267,6 +284,7 @@ function CoursesContent() {
         providerId={providerId}
         expiryStatus={expiryStatus}
         language={language}
+        hideClicked={hideClicked}
         onCategoryChange={(id) => {
           setCategoryId(id);
           resetPage();
@@ -283,6 +301,9 @@ function CoursesContent() {
           setLanguage(lang);
           resetPage();
         }}
+        onHideClickedChange={(hide) => {
+          setHideClicked(hide);
+        }}
         onClearAll={handleClearFilters}
       />
 
@@ -290,13 +311,18 @@ function CoursesContent() {
       {displayData && !loading && (
         <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground font-semibold">
           <span>
-            Showing {displayData.data.length} of {displayData.total}{" "}
+            Showing {coursesToRender.length} of {displayData.total}{" "}
             {language === "English"
               ? "English courses"
               : language === "all"
                 ? "courses (All Languages)"
                 : "Non-English courses"}
           </span>
+          {hideClicked && (
+            <span className="text-[11px] font-extrabold text-sky-500 bg-sky-500/10 px-2 py-0.5 rounded-md border border-sky-500/20">
+              Opened courses hidden
+            </span>
+          )}
           {language === "English" &&
             nonEnglishCount !== null &&
             nonEnglishCount > 0 && (
@@ -318,25 +344,40 @@ function CoursesContent() {
         <LoadingState variant="card-grid" />
       ) : error ? (
         <ErrorState onRetry={() => refetch()} />
-      ) : !displayData?.data?.length ? (
+      ) : !coursesToRender.length ? (
         <EmptyState
-          icon={Search}
-          title="No courses found"
+          icon={hideClicked ? CheckCircle2 : Search}
+          title={hideClicked ? "All courses on this page are opened" : "No courses found"}
           description={
-            isSearching
+            hideClicked
+              ? "You have already opened all courses displayed on this page. Navigate to the next page or toggle 'Hide Opened'."
+              : isSearching
               ? "Try adjusting your search query or filters"
               : "No courses available yet. Wait for the scraper to discover courses."
+          }
+          action={
+            hideClicked ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setHideClicked(false)}
+                className="mt-2 text-xs font-bold rounded-xl"
+              >
+                Show All Courses
+              </Button>
+            ) : undefined
           }
         />
       ) : (
         <>
           {viewMode === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-              {displayData.data.map((course) => (
+              {coursesToRender.map((course) => (
                 <CourseCard
                   key={course.id}
                   course={course}
                   isFavorited={favoriteIds.has(course.id)}
+                  isClicked={clickedIds.has(course.id)}
                   onToggleFavorite={handleToggleFavorite}
                   onGetCourse={handleGetCourse}
                 />
@@ -344,12 +385,13 @@ function CoursesContent() {
             </div>
           ) : (
             <div className="space-y-3">
-              {displayData.data.map((course) => (
+              {coursesToRender.map((course) => (
                 <CourseCard
                   key={course.id}
                   course={course}
                   compact
                   isFavorited={favoriteIds.has(course.id)}
+                  isClicked={clickedIds.has(course.id)}
                   onToggleFavorite={handleToggleFavorite}
                   onGetCourse={handleGetCourse}
                 />
@@ -358,7 +400,7 @@ function CoursesContent() {
           )}
 
           {/* Pagination */}
-          {displayData.totalPages > 1 && (
+          {displayData && displayData.totalPages > 1 && (
             <Pagination
               currentPage={page}
               totalPages={displayData.totalPages}
