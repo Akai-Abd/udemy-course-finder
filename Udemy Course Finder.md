@@ -3,7 +3,7 @@
 **Version:** 1.0.3  
 **Author:** Akai  
 **License:** MIT  
-**Last Updated:** 2026-07-28
+**Last Updated:** 2026-11-19
 
 ---
 
@@ -323,12 +323,18 @@ Setting (standalone key-value)
 
 ### 7.1 Architecture
 
-The scraper is a standalone Python process that:
+The scraper engine supports two execution modes:
 
-1. **Connects** to Redis and PostgreSQL on startup
-2. **Listens** for BullMQ jobs on the `scrape-queue` queue
-3. **Runs a scheduler** thread that enqueues `scrape-all` jobs at a configurable interval (default: 30 min)
-4. **Processes jobs** through the 6-stage pipeline
+1. **Queue Worker (`src/main.py`)**:
+   - Connects to Redis and PostgreSQL on startup
+   - Listens for BullMQ jobs on the `scrape-queue` queue
+   - Runs a scheduler thread that enqueues `scrape-all` jobs at a configurable interval (default: 30 min)
+   - Processes jobs through the 6-stage pipeline
+
+2. **Standalone Runner (`run_all.py`)**:
+   - Direct Python execution without requiring Redis or BullMQ
+   - Sequentially scrapes all 10 providers and stores results directly in PostgreSQL or SQLite (`dev.db`)
+   - Invoked directly from CLI (`python3 run_all.py`) or auto-triggered every 30m by NestJS `jobs.service.ts` when running in standalone mode (`ENABLE_REDIS=false`)
 
 ### 7.2 Job Types
 
@@ -446,10 +452,11 @@ class ScrapedCourse:
 - **Mobile Responsive:** Drawer navigation for mobile viewports
 - **Semantic Search:** Toggle between full-text and AI-powered vector search
 - **Real-time Notifications:** Bell icon with unread count badge
-- **Course Cards:** Thumbnail, title, instructor, rating, category, expiry countdown, favorite toggle
+- **Course Cards:** Thumbnail, title, instructor, rating, category, expiry countdown, favorite toggle, and visual `OPENED` badge with `Open Again` action button
 - **Course Detail Page:** Single-course view with similar course recommendations
 - **Course Export:** Download courses as CSV or JSON (all or favorites)
-- **Course Filters:** Category, provider, expiry status, language filters with clear-all
+- **Course Filters:** Category, provider, expiry status, language filters, and 1-click **Hide Opened** toolbar toggle
+- **Enrolled / Click Tracking:** Optimistic UI state tracking so clicked/enrolled courses immediately dim and show `OPENED` status
 - **Grid/List View Toggle:** Switch between grid and compact list view modes
 - **Analytics Charts:** Time-series (courses/day), category breakdown (pie), provider comparison (bar)
 - **Provider Management:** Enable/disable, trigger scrape, test connectivity, view logs with stats
@@ -761,6 +768,7 @@ udemy-course-finder/
 │   ├── next.config.ts              # Standalone output, unoptimized images, remote patterns
 │   └── package.json
 ├── scraper/                        # Python scraping worker
+│   ├── run_all.py                  # Standalone live scraper runner (10 providers)
 │   ├── src/
 │   │   ├── main.py                 # ScraperEngine: orchestrator, scheduler, job handler
 │   │   ├── config.py               # Typed Config dataclass from environment
@@ -860,9 +868,9 @@ The scraper supports rotating HTTP proxies:
 
 ## 16. Current Project Status
 
-**Version:** 1.0.3 (released 2026-07-27)  
-**Status:** Feature-complete, not yet deployed  
-**Git branch:** `main` (5e5bdd3)
+**Version:** 1.0.3 (updated 2026-11-19)  
+**Status:** Feature-complete, active development  
+**Git branch:** `main` (29ddea5)
 
 ### 16.1 What Is Fully Implemented
 
@@ -870,12 +878,13 @@ The scraper supports rotating HTTP proxies:
 |-----------|--------|-------|
 | Backend API (15 modules) | ✅ Complete | All endpoints functional, Swagger docs live |
 | Frontend Dashboard (10 pages) | ✅ Complete | All routes implemented with full UI |
-| Python Scraper (10 providers) | ✅ Complete | 6-stage pipeline, BullMQ consumer, scheduler |
+| Python Scraper (10 providers) | ✅ Complete | 6-stage pipeline, BullMQ consumer, standalone runner |
 | Database Schema (15 tables) | ✅ Complete | PostgreSQL + pgvector, SQLite fallback |
 | Docker Compose (5 containers) | ✅ Complete | Production + dev override configs |
 | Authentication + RBAC | ✅ Complete | JWT, Argon2, refresh, blacklist, admin role |
 | Semantic Search (pgvector) | ✅ Complete | HuggingFace all-MiniLM-L6-v2 embeddings |
 | Course Export (CSV/JSON) | ✅ Complete | All courses or favorites |
+| Enrolled / Click Tracking | ✅ Complete | Visual `OPENED` tags, `Hide Opened` toolbar toggle |
 | Test Suites | ✅ Complete | 3 unit specs, 6 E2E specs, 6 pytest files |
 | SQLite Standalone Mode | ✅ Complete | `ENABLE_REDIS=false` for local dev without Docker |
 
@@ -885,7 +894,7 @@ The scraper supports rotating HTTP proxies:
 |-------|----------|--------|
 | CORS is fully permissive | Low | `origin: true` allows all origins; `CORS_ORIGIN` env var is defined but not used in `main.ts` |
 | Frontend `api/` route dirs empty | Info | Directory structure exists but contains no route handler files |
-| Scraper path resolution | Low | `jobs.service.ts` uses relative `path.resolve(__dirname, '../../../../scraper/run_all.py')` — path may break depending on deployment layout |
+| Scraper path resolution | Resolved | `jobs.service.ts` uses multi-candidate dynamic path search (`process.cwd()`, `__dirname`, etc.) |
 | No CI/CD pipeline | Info | No GitHub Actions or deployment automation configured |
 | No deployment target configured | Info | Project runs locally only; deployment strategy under evaluation |
 

@@ -265,8 +265,10 @@ If you encounter issues during installation or runtime, refer to the resolutions
 - **🤖 Recommendations** — Personalized course suggestions based on browsing history
 - **📊 Analytics Dashboard** — Time-series charts, category breakdowns, provider stats
 - **⭐ Favorites & History** — Save courses and track your browsing activity
+- **🎯 Opened / Enrollment Tracking** — Visual `OPENED` badges, state changes, and 1-click **Hide Opened** toolbar filter to hide already-enrolled courses
 - **🕷️ 10 Scrapers** — Modular scraper architecture with a 6-stage data pipeline
-- **⏰ Auto-Scheduling** — Configurable scrape interval with BullMQ job queue
+- **🚀 Standalone & Queue Scraping** — BullMQ job queue orchestration plus a direct standalone runner (`run_all.py`)
+- **⏰ Auto-Scheduling** — Configurable scrape interval with background scheduler
 - **✅ Coupon Validation** — Periodic verification of active coupons against Udemy
 - **🔐 Secure Auth** — JWT with refresh tokens, Argon2 hashing, Redis token blacklist
 - **👥 Admin Panel** — Role-based access control with user management
@@ -370,11 +372,16 @@ docker compose up -d
 # Frontend at http://localhost:3001, API at http://localhost:4001/api
 ```
 
-### Python Scraper (Standalone)
+### Python Scraper (Standalone or Queue Runner)
 ```bash
 cd scraper
-python -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+
+# Run all 10 live scrapers directly (saves to dev.db or PostgreSQL without Redis):
+python run_all.py
+
+# Or run the BullMQ queue worker (requires Redis + BullMQ):
 python -m src.main
 ```
 
@@ -416,7 +423,7 @@ udemy-course-finder/
 │   │   ├── history/          # Browsing history tracking
 │   │   ├── analytics/        # Dashboard analytics
 │   │   ├── categories/       # Course categories
-│   │   ├── jobs/             # BullMQ job scheduling
+│   │   ├── jobs/             # BullMQ job scheduling & standalone fallback runner
 │   │   ├── embeddings/       # HuggingFace vector embeddings
 │   │   ├── notifications/    # In-app notification system
 │   │   ├── users/            # Admin user management (RBAC)
@@ -427,9 +434,10 @@ udemy-course-finder/
 ├── frontend/                 # Next.js dashboard
 │   └── src/
 │       ├── app/              # App Router pages + custom favicon & branding
-│       ├── components/       # UI components (shadcn/ui, analytics, layout, shared)
+│       ├── components/       # UI components (shadcn/ui, courses, analytics, layout, shared)
 │       └── lib/              # API client, hooks, utilities
 ├── scraper/                  # Python scraping worker
+│   ├── run_all.py            # Standalone live scraper runner (all 10 providers)
 │   └── src/
 │       ├── providers/        # 10 scraper implementations
 │       ├── pipeline/         # normalize → validate → filter → dedup → store
