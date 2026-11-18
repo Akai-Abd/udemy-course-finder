@@ -146,6 +146,8 @@ export const coursesApi = {
   getRecommendations: () => apiClient.get<Course[]>("/courses/recommendations"),
   getSimilar: (id: string, limit = 4) =>
     apiClient.get<Course[]>(`/courses/${id}/similar`, { params: { limit } }),
+  reportExpired: (id: string) =>
+    apiClient.post<{ success: boolean; message: string }>(`/courses/${id}/report-expired`),
 };
 
 // Providers

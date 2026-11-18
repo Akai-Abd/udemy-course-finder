@@ -75,7 +75,7 @@ class Database:
     def get_connection(self) -> Generator:
         """Get database connection."""
         if self._is_sqlite:
-            conn = sqlite3.connect(self._db_path or "./dev.db")
+            conn = sqlite3.connect(self._db_path or "./dev.db", timeout=30.0)
             conn.row_factory = sqlite3.Row
             try:
                 yield conn

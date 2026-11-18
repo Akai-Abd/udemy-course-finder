@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Star, ExternalLink, Heart, Clock, Flame, Share2, Check } from "lucide-react";
+import { Star, ExternalLink, Heart, Clock, Flame, Share2, Check, Flag } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import type { Course } from "@/lib/api-client";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useReportExpired } from "@/lib/hooks/use-courses";
 
 interface CourseCardProps {
   course: Course;
@@ -83,6 +84,7 @@ export function CourseCard({
   const { timeLeft, isUrgent, isExpired } = useCountdown(course.expiresAt);
   const [imgError, setImgError] = useState(false);
   const isHot = (course.rating && course.rating >= 4.5) || (course._count?.history && course._count.history >= 3);
+  const reportExpired = useReportExpired();
 
   const handleGetCourse = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -329,6 +331,20 @@ export function CourseCard({
             title="Copy course link"
           >
             <Share2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs font-semibold hover:text-red-500 hover:border-red-500/30 border-border/40 px-2"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              reportExpired.mutate(course.id);
+            }}
+            title="Report expired coupon"
+            disabled={!course.isActive || isExpired || reportExpired.isPending}
+          >
+            <Flag className="h-3.5 w-3.5" />
           </Button>
           <Button size="sm" variant="outline" className="text-xs font-semibold hover:bg-accent border-border/40" asChild>
             <Link href={`/courses/${course.id}`}>Details</Link>

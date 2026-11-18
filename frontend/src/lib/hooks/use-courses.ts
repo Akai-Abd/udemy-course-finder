@@ -1,7 +1,8 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { coursesApi } from "@/lib/api-client";
+import { toast } from "sonner";
 
 export function useCourses(params?: Record<string, string | number | undefined>) {
   return useQuery({
@@ -50,5 +51,19 @@ export function useSimilarCourses(id: string, limit = 4) {
     queryKey: ["courses", id, "similar", limit],
     queryFn: () => coursesApi.getSimilar(id, limit).then((res) => res.data),
     enabled: !!id,
+  });
+}
+
+export function useReportExpired() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (courseId: string) => coursesApi.reportExpired(courseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["courses"] });
+      toast.success("Reported as expired. Course status updated!");
+    },
+    onError: () => {
+      toast.error("Failed to report expired coupon.");
+    },
   });
 }

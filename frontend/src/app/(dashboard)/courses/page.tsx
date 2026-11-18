@@ -50,6 +50,7 @@ function CoursesContent() {
   const [providerId, setProviderId] = useState<string | undefined>(undefined);
   const [expiryStatus, setExpiryStatus] = useState("active");
   const [language, setLanguage] = useState("English");
+  const [timeRange, setTimeRange] = useState("all");
   const [isSemantic, setIsSemantic] = useState(false);
   const [hideClicked, setHideClicked] = useState(false);
   const [localClickedIds, setLocalClickedIds] = useState<Set<string>>(new Set());
@@ -87,9 +88,10 @@ function CoursesContent() {
           providerId,
           expiryStatus,
           language,
+          timeRange,
         }
         : undefined,
-    [isSearching, page, sortBy, categoryId, providerId, expiryStatus, language]
+    [isSearching, page, sortBy, categoryId, providerId, expiryStatus, language, timeRange]
   );
 
   const searchParams = useMemo(
@@ -103,9 +105,10 @@ function CoursesContent() {
           providerId,
           expiryStatus,
           language,
+          timeRange,
         }
         : undefined,
-    [isSearching, debouncedSearch, page, categoryId, providerId, expiryStatus, language]
+    [isSearching, debouncedSearch, page, categoryId, providerId, expiryStatus, language, timeRange]
   );
 
   const {
@@ -179,6 +182,7 @@ function CoursesContent() {
     setProviderId(undefined);
     setExpiryStatus("active");
     setLanguage("English");
+    setTimeRange("all");
     setHideClicked(false);
     setPage(1);
   }, [setPage]);
@@ -284,6 +288,7 @@ function CoursesContent() {
         providerId={providerId}
         expiryStatus={expiryStatus}
         language={language}
+        timeRange={timeRange}
         hideClicked={hideClicked}
         onCategoryChange={(id) => {
           setCategoryId(id);
@@ -299,6 +304,10 @@ function CoursesContent() {
         }}
         onLanguageChange={(lang) => {
           setLanguage(lang);
+          resetPage();
+        }}
+        onTimeRangeChange={(range) => {
+          setTimeRange(range);
           resetPage();
         }}
         onHideClickedChange={(hide) => {
@@ -318,6 +327,11 @@ function CoursesContent() {
                 ? "courses (All Languages)"
                 : "Non-English courses"}
           </span>
+          {timeRange === "today" && (
+            <span className="text-[11px] font-extrabold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+              Discovered Today
+            </span>
+          )}
           {hideClicked && (
             <span className="text-[11px] font-extrabold text-sky-500 bg-sky-500/10 px-2 py-0.5 rounded-md border border-sky-500/20">
               Opened courses hidden

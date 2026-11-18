@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Request, Res } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, Request, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import {
   ApiTags,
@@ -85,5 +85,12 @@ export class CoursesController {
   @ApiResponse({ status: 404, description: 'Course not found' })
   async findById(@Param('id') id: string) {
     return this.coursesService.findById(id);
+  }
+
+  @Post(':id/report-expired')
+  @ApiOperation({ summary: 'Report a course coupon as expired' })
+  @ApiResponse({ status: 200, description: 'Course coupon marked as expired' })
+  async reportExpired(@Param('id') id: string) {
+    return this.coursesService.reportExpired(id);
   }
 }

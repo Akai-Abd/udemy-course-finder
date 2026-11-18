@@ -92,6 +92,7 @@ export class CoursesService {
       sortBy: dto.sortBy,
       expiryStatus: dto.expiryStatus,
       language: dto.language,
+      timeRange: dto.timeRange,
     });
     return {
       ...result,
@@ -117,6 +118,7 @@ export class CoursesService {
       sortBy: dto.sortBy,
       expiryStatus: dto.expiryStatus,
       language: dto.language,
+      timeRange: dto.timeRange,
     });
     return {
       ...result,
@@ -454,5 +456,13 @@ export class CoursesService {
       filename: `udemy-courses-${type}-${Date.now()}.csv`,
       contentType: 'text/csv',
     };
+  }
+
+  async reportExpired(id: string) {
+    await this.prisma.couponSource.updateMany({
+      where: { courseId: id },
+      data: { isActive: false },
+    });
+    return { success: true, message: 'Coupon reported and marked as expired' };
   }
 }

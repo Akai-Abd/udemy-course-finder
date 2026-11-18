@@ -19,8 +19,11 @@ async function bootstrap() {
   );
 
   // ───────────── CORS ─────────────
+  const allowedOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
+    : ['http://localhost:3000', 'http://localhost:3001'];
   app.enableCors({
-    origin: true,
+    origin: process.env.NODE_ENV === 'production' ? allowedOrigins : true,
     credentials: true,
   });
 

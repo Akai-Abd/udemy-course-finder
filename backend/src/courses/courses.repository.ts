@@ -24,6 +24,7 @@ export class CoursesRepository {
     sortBy?: CourseSortBy;
     expiryStatus?: string;
     language?: string;
+    timeRange?: string;
   }): Promise<PaginatedResult<Course>> {
     return this.findCourses(params);
   }
@@ -37,6 +38,7 @@ export class CoursesRepository {
     sortBy?: CourseSortBy;
     expiryStatus?: string;
     language?: string;
+    timeRange?: string;
   }): Promise<PaginatedResult<Course>> {
     return this.findCourses(params);
   }
@@ -91,6 +93,7 @@ export class CoursesRepository {
     sortBy?: CourseSortBy;
     expiryStatus?: string;
     language?: string;
+    timeRange?: string;
   }): Promise<PaginatedResult<Course>> {
     const {
       query,
@@ -101,14 +104,27 @@ export class CoursesRepository {
       sortBy,
       expiryStatus,
       language,
+      timeRange,
     } = params;
     const skip = (page - 1) * limit;
 
     const activeFilter = getActiveFilter();
     const langFilter = this.buildLanguageFilter(language);
 
+    const timeFilter =
+      timeRange === 'today'
+        ? {
+            gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          }
+        : timeRange === '24h'
+          ? {
+              gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+            }
+          : undefined;
+
     const where: Prisma.CourseWhereInput = {
       ...(langFilter && { language: langFilter }),
+      ...(timeFilter && { createdAt: timeFilter }),
       ...(query && {
         OR: [
           { title: { contains: query } },

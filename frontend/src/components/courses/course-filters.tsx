@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Filter, SlidersHorizontal, CheckCircle2 } from "lucide-react";
+import { X, Filter, SlidersHorizontal, CheckCircle2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -20,11 +20,13 @@ interface CourseFiltersProps {
   providerId: string | undefined;
   expiryStatus: string;
   language: string;
+  timeRange?: string;
   hideClicked?: boolean;
   onCategoryChange: (categoryId: string | undefined) => void;
   onProviderChange: (providerId: string | undefined) => void;
   onExpiryChange: (status: string) => void;
   onLanguageChange: (lang: string) => void;
+  onTimeRangeChange?: (range: string) => void;
   onHideClickedChange?: (hide: boolean) => void;
   onClearAll: () => void;
 }
@@ -34,11 +36,13 @@ export function CourseFilters({
   providerId,
   expiryStatus,
   language,
+  timeRange = "all",
   hideClicked = false,
   onCategoryChange,
   onProviderChange,
   onExpiryChange,
   onLanguageChange,
+  onTimeRangeChange,
   onHideClickedChange,
   onClearAll,
 }: CourseFiltersProps) {
@@ -47,7 +51,12 @@ export function CourseFilters({
   const [expanded, setExpanded] = useState(false);
 
   const hasActiveFilters =
-    categoryId || providerId || expiryStatus !== "active" || language !== "English" || hideClicked;
+    categoryId ||
+    providerId ||
+    expiryStatus !== "active" ||
+    language !== "English" ||
+    hideClicked ||
+    (timeRange && timeRange !== "all");
 
   const activeFilters: { label: string; onRemove: () => void }[] = [];
 
@@ -55,6 +64,13 @@ export function CourseFilters({
     activeFilters.push({
       label: "Hide Opened",
       onRemove: () => onHideClickedChange(false),
+    });
+  }
+
+  if (timeRange && timeRange !== "all" && onTimeRangeChange) {
+    activeFilters.push({
+      label: timeRange === "today" ? "Discovered Today" : `Time: ${timeRange}`,
+      onRemove: () => onTimeRangeChange("all"),
     });
   }
 
@@ -124,6 +140,23 @@ export function CourseFilters({
           >
             <CheckCircle2 className="h-3.5 w-3.5" />
             <span>Hide Opened</span>
+          </Button>
+        )}
+
+        {onTimeRangeChange && (
+          <Button
+            variant={timeRange === "today" ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => onTimeRangeChange(timeRange === "today" ? "all" : "today")}
+            className={cn(
+              "gap-1.5 text-xs font-bold rounded-xl h-8.5 transition-all border-border/40",
+              timeRange === "today"
+                ? "bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-400 font-extrabold"
+                : "text-muted-foreground hover:bg-muted"
+            )}
+          >
+            <Clock className="h-3.5 w-3.5" />
+            <span>Today Only</span>
           </Button>
         )}
 

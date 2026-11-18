@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Udemy Course Finder Assistant</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111726;
+      --border: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --success: #10b981;
+      --danger: #ef4444;
+    }
+    body {
+      margin: 0;
+      padding: 16px;
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+    .title {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 0;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 14px 0;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 2px;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 9px 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 8px;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+    .btn-secondary {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: #1e293b;
+    }
+    .progress-bar {
+      display: none;
+      margin: 10px 0;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--success);
+      transition: width 0.3s;
+    }
+    .status {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 8px;
+      min-height: 16px;
+    }
+    .settings {
+      margin-top: 12px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .settings input {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      margin-top: 4px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="icon.png" class="logo" alt="Logo">
+    <div>
+      <h1 class="title">Course Assistant</h1>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div id="stat-total" class="stat-num">0</div>
+      <div class="stat-label">Today's Free</div>
+    </div>
+    <div class="stat-card">
+      <div id="stat-new" class="stat-num">0</div>
+      <div class="stat-label">Untouched</div>
+    </div>
+  </div>
+
+  <div class="progress-bar" id="progress-bar">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+
+  <button id="btn-batch-enroll" class="btn btn-primary">
+    ⚡ 1-Click Auto-Enroll All
+  </button>
+  <button id="btn-open-tabs" class="btn btn-secondary">
+    🌐 Open All in Tabs
+  </button>
+  <button id="btn-refresh" class="btn btn-secondary">
+    🔄 Refresh Today's Courses
+  </button>
+
+  <div id="status-text" class="status">Connecting to local server...</div>
+
+  <div class="settings">
+    <label>API Endpoint:</label>
+    <input type="text" id="api-url" value="http://localhost:4000">
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

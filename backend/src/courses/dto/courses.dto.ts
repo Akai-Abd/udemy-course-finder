@@ -52,6 +52,13 @@ export class ListCoursesDto {
   @IsOptional()
   @IsString()
   language?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by discovery time range: today, 24h, all',
+  })
+  @IsOptional()
+  @IsString()
+  timeRange?: string;
 }
 
 export class SearchCoursesDto extends ListCoursesDto {

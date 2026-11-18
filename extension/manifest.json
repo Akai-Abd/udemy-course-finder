@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Udemy Course Finder Assistant",
+  "version": "1.0.0",
+  "description": "1-click batch enrollment and coupon sync for Udemy Course Finder",
+  "icons": {
+    "128": "icon.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Udemy Course Finder Assistant"
+  },
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.udemy.com/*",
+    "http://localhost:4000/*",
+    "http://localhost:4001/*",
+    "http://127.0.0.1:4000/*"
+  ]
+}
