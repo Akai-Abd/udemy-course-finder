@@ -97,10 +97,16 @@ export class NotificationsService {
 
     await Promise.all(
       users.map((u) =>
-        this.createNotification(u.id, NotificationType.NEW_COURSES, title, message, {
-          providerName,
-          coursesAccepted,
-        }),
+        this.createNotification(
+          u.id,
+          NotificationType.NEW_COURSES,
+          title,
+          message,
+          {
+            providerName,
+            coursesAccepted,
+          },
+        ),
       ),
     );
   }
@@ -157,14 +163,22 @@ export class NotificationsService {
 
     if (!pref) {
       pref = await this.prisma.notificationPreference.create({
-        data: { userId, onNewCourses: true, onExpiringSoon: true, browserPushEnabled: false },
+        data: {
+          userId,
+          onNewCourses: true,
+          onExpiringSoon: true,
+          browserPushEnabled: false,
+        },
       });
     }
 
     return pref;
   }
 
-  async updatePreferences(userId: string, dto: UpdateNotificationPreferencesDto) {
+  async updatePreferences(
+    userId: string,
+    dto: UpdateNotificationPreferencesDto,
+  ) {
     return this.prisma.notificationPreference.upsert({
       where: { userId },
       update: { ...dto },

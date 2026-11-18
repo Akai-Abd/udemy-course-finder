@@ -17,7 +17,12 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { LoginDto, TokenResponseDto, RefreshTokenDto, RegisterDto } from './dto';
+import {
+  LoginDto,
+  TokenResponseDto,
+  RefreshTokenDto,
+  RegisterDto,
+} from './dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Public } from '../common/decorators';
 import { CurrentUser } from '../common/decorators';

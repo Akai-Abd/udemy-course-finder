@@ -7,7 +7,10 @@ import { RedisCacheService } from '../common/cache/redis-cache.service';
 import { EmbeddingsService } from '../embeddings/embeddings.service';
 import { getActiveFilter } from '../common/helpers/active-filter.helper';
 
-export function mapCourseToResponse(course: any, targetProviderId?: string): any {
+export function mapCourseToResponse(
+  course: any,
+  targetProviderId?: string,
+): any {
   if (!course) return null;
 
   let source = null;
@@ -24,7 +27,8 @@ export function mapCourseToResponse(course: any, targetProviderId?: string): any
         (s: any) =>
           s.isActive &&
           s.isFree &&
-          (!s.expiresAt || new Date(s.expiresAt) >= new Date()),
+          (!s.expiresAt ||
+            new Date(s.expiresAt as string | number | Date) >= new Date()),
       ) || [];
 
     source =
@@ -317,7 +321,7 @@ export class CoursesService {
           const row = similarityRows.find((r) => r.course_id === id);
           return {
             ...course,
-            similarity: row ? parseFloat(row.similarity) : 0,
+            similarity: row ? parseFloat(String(row.similarity)) : 0,
           };
         })
         .filter(Boolean) as any[];
@@ -372,7 +376,7 @@ export class CoursesService {
           const row = similarityRows.find((r) => r.course_id === id);
           return {
             ...course,
-            similarity: row ? parseFloat(row.similarity) : 0,
+            similarity: row ? parseFloat(String(row.similarity)) : 0,
           };
         })
         .filter(Boolean)
@@ -382,7 +386,11 @@ export class CoursesService {
     }
   }
 
-  async exportCourses(format: 'csv' | 'json' = 'csv', type: 'all' | 'favorites' = 'all', userId?: string) {
+  async exportCourses(
+    format: 'csv' | 'json' = 'csv',
+    type: 'all' | 'favorites' = 'all',
+    userId?: string,
+  ) {
     let courses: any[] = [];
     if (type === 'favorites' && userId) {
       const favs = await this.prisma.favorite.findMany({
@@ -398,7 +406,10 @@ export class CoursesService {
       });
       courses = favs.map((f) => mapCourseToResponse(f.course));
     } else {
-      const res = await this.coursesRepository.findAll({ page: 1, limit: 1000 });
+      const res = await this.coursesRepository.findAll({
+        page: 1,
+        limit: 1000,
+      });
       courses = res.data.map((c) => mapCourseToResponse(c));
     }
 
@@ -410,7 +421,17 @@ export class CoursesService {
       };
     }
 
-    const headers = ['ID', 'Title', 'Udemy URL', 'Coupon URL', 'Category', 'Provider', 'Rating', 'Instructor', 'Created At'];
+    const headers = [
+      'ID',
+      'Title',
+      'Udemy URL',
+      'Coupon URL',
+      'Category',
+      'Provider',
+      'Rating',
+      'Instructor',
+      'Created At',
+    ];
     const rows = courses.map((c) => [
       c.id,
       `"${(c.title || '').replace(/"/g, '""')}"`,
@@ -423,7 +444,10 @@ export class CoursesService {
       c.createdAt,
     ]);
 
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((r) => r.join(',')),
+    ].join('\n');
 
     return {
       data: csvContent,

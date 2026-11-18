@@ -14,7 +14,11 @@ export class UsersService {
     return this.usersRepository.findById(id);
   }
 
-  async create(email: string, passwordHash: string, role: any = 'USER'): Promise<User> {
+  async create(
+    email: string,
+    passwordHash: string,
+    role: any = 'USER',
+  ): Promise<User> {
     return this.usersRepository.create(email, passwordHash, role);
   }
 
@@ -34,4 +38,3 @@ export class UsersService {
     await this.usersRepository.delete(userId);
   }
 }
-

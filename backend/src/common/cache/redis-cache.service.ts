@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
@@ -16,7 +21,10 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     // Clean up expired entries every 5 minutes to prevent memory leaks
-    this.cleanupInterval = setInterval(() => this.cleanupExpired(), 5 * 60 * 1000);
+    this.cleanupInterval = setInterval(
+      () => this.cleanupExpired(),
+      5 * 60 * 1000,
+    );
 
     if (process.env.ENABLE_REDIS === 'false') {
       this.logger.log('Redis is disabled. Using in-memory cache.');
@@ -109,7 +117,9 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
       try {
         await this.redis.del(key);
       } catch (error) {
-        this.logger.warn(`Redis cache invalidate failed for key ${key}: ${error}`);
+        this.logger.warn(
+          `Redis cache invalidate failed for key ${key}: ${error}`,
+        );
       }
     }
   }

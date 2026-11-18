@@ -7,15 +7,15 @@ import { NotificationsModule } from '../notifications/notifications.module';
 const isRedisDisabled = process.env.ENABLE_REDIS === 'false';
 
 const mockQueue = {
-  add: async () => ({ id: 'standalone-job-id' }),
-  getJob: async () => null,
-  getRepeatableJobs: async () => [],
-  removeRepeatableByKey: async () => {},
-  getWaitingCount: async () => 0,
-  getActiveCount: async () => 0,
-  getCompletedCount: async () => 0,
-  getFailedCount: async () => 0,
-  getDelayedCount: async () => 0,
+  add: () => Promise.resolve({ id: 'standalone-job-id' }),
+  getJob: () => Promise.resolve(null),
+  getRepeatableJobs: () => Promise.resolve([]),
+  removeRepeatableByKey: () => Promise.resolve(),
+  getWaitingCount: () => Promise.resolve(0),
+  getActiveCount: () => Promise.resolve(0),
+  getCompletedCount: () => Promise.resolve(0),
+  getFailedCount: () => Promise.resolve(0),
+  getDelayedCount: () => Promise.resolve(0),
   on: () => {},
 };
 

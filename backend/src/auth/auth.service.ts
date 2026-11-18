@@ -53,7 +53,11 @@ export class AuthService {
     }
 
     const passwordHash = await argon2.hash(registerDto.password);
-    const user = await this.usersService.create(registerDto.email, passwordHash, 'USER');
+    const user = await this.usersService.create(
+      registerDto.email,
+      passwordHash,
+      'USER',
+    );
 
     this.logger.log(`User ${user.email} registered`);
     return this.generateTokens(user.id, user.email, user.role);

@@ -35,11 +35,19 @@ export function ExportButton({ type = "all" }: ExportButtonProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40 bg-popover/95 backdrop-blur-md border-border/40">
-        <DropdownMenuItem onClick={() => handleExport("csv")} className="cursor-pointer font-semibold text-xs py-2">
+        <DropdownMenuItem
+          onSelect={() => handleExport("csv")}
+          onClick={() => handleExport("csv")}
+          className="cursor-pointer font-semibold text-xs py-2"
+        >
           <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-500" />
           Export as CSV
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleExport("json")} className="cursor-pointer font-semibold text-xs py-2">
+        <DropdownMenuItem
+          onSelect={() => handleExport("json")}
+          onClick={() => handleExport("json")}
+          className="cursor-pointer font-semibold text-xs py-2"
+        >
           <FileJson className="mr-2 h-3.5 w-3.5 text-amber-500" />
           Export as JSON
         </DropdownMenuItem>

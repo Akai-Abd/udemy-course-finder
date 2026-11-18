@@ -92,8 +92,16 @@ export class CoursesRepository {
     expiryStatus?: string;
     language?: string;
   }): Promise<PaginatedResult<Course>> {
-    const { query, page, limit, categoryId, providerId, sortBy, expiryStatus, language } =
-      params;
+    const {
+      query,
+      page,
+      limit,
+      categoryId,
+      providerId,
+      sortBy,
+      expiryStatus,
+      language,
+    } = params;
     const skip = (page - 1) * limit;
 
     const activeFilter = getActiveFilter();

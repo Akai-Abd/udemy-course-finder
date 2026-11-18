@@ -49,7 +49,10 @@ export default function SettingsPage() {
       await settingsApi.update("proxies", proxies);
       toast.success("Scraper proxy list saved successfully");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Unknown error";
+      const errorObj = err as { response?: { data?: { message?: string } } };
+      const message =
+        errorObj.response?.data?.message ||
+        (err instanceof Error ? err.message : "Unknown error");
       toast.error("Failed to save proxy list: " + message);
     } finally {
       setIsSavingProxies(false);
@@ -124,11 +127,17 @@ export default function SettingsPage() {
       setNewPassword("");
       setConfirmPassword("");
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : "Failed to change password";
-      toast.error(Array.isArray(msg) ? msg[0] : msg);
+      const errorObj = err as {
+        response?: { data?: { message?: string | string[] } };
+      };
+      const rawMsg = errorObj.response?.data?.message;
+      const msg = Array.isArray(rawMsg)
+        ? rawMsg[0]
+        : rawMsg ||
+          (err instanceof Error
+            ? err.message
+            : "Failed to change password");
+      toast.error(msg);
     } finally {
       setIsChanging(false);
     }

@@ -26,7 +26,11 @@ export class NotificationsController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.notificationsService.list(userId, page ? Number(page) : 1, limit ? Number(limit) : 20);
+    return this.notificationsService.list(
+      userId,
+      page ? Number(page) : 1,
+      limit ? Number(limit) : 20,
+    );
   }
 
   @Get('unread-count')

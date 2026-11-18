@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { exec } from 'child_process';
 import * as path from 'path';
+import * as fs from 'fs';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -22,20 +23,43 @@ export class JobsService implements OnModuleInit {
   }
 
   public triggerPythonScraper() {
-    const scraperPath = path.resolve(__dirname, '../../../../scraper/run_all.py');
-    const dbPath = path.resolve(__dirname, '../../../dev.db');
+    const scraperPath =
+      [
+        path.resolve(process.cwd(), '../scraper/run_all.py'),
+        path.resolve(process.cwd(), 'scraper/run_all.py'),
+        path.resolve(__dirname, '../../../../scraper/run_all.py'),
+        path.resolve(__dirname, '../../../scraper/run_all.py'),
+      ].find((p) => fs.existsSync(p)) ||
+      path.resolve(__dirname, '../../../../scraper/run_all.py');
+
+    const dbPath =
+      [
+        path.resolve(process.cwd(), 'dev.db'),
+        path.resolve(process.cwd(), 'backend/dev.db'),
+        path.resolve(__dirname, '../../../dev.db'),
+        path.resolve(__dirname, '../../dev.db'),
+      ].find((p) => fs.existsSync(p)) || path.resolve(process.cwd(), 'dev.db');
+
+    const envDbUrl = process.env.DATABASE_URL;
+    const isSqlite =
+      !envDbUrl || envDbUrl.startsWith('file:') || envDbUrl.endsWith('.db');
+    const dbTarget = isSqlite ? dbPath : envDbUrl;
+
     this.logger.log(`🐍 Triggering Python Scraper: python3 ${scraperPath}`);
 
-    exec(`DATABASE_URL="${dbPath}" python3 "${scraperPath}"`, (error, stdout) => {
-      if (error) {
-        this.logger.error(`Python Scraper execution error: ${error.message}`);
-        return;
-      }
-      this.logger.log(`✅ Python Scraper execution completed cleanly.`);
-      if (stdout) {
-        this.logger.log(`Scraper log summary:\n${stdout.slice(-300)}`);
-      }
-    });
+    exec(
+      `DATABASE_URL="${dbTarget}" python3 "${scraperPath}"`,
+      (error, stdout) => {
+        if (error) {
+          this.logger.error(`Python Scraper execution error: ${error.message}`);
+          return;
+        }
+        this.logger.log(`✅ Python Scraper execution completed cleanly.`);
+        if (stdout) {
+          this.logger.log(`Scraper log summary:\n${stdout.slice(-300)}`);
+        }
+      },
+    );
   }
 
   async onModuleInit() {
@@ -106,7 +130,7 @@ export class JobsService implements OnModuleInit {
     } catch (error) {
       this.logger.warn(
         `Failed to schedule repeatable job: ${error}. ` +
-        `The Python scraper has its own scheduler as fallback.`,
+          `The Python scraper has its own scheduler as fallback.`,
       );
     }
   }
@@ -269,4 +293,3 @@ export class JobsService implements OnModuleInit {
     }
   }
 }
-

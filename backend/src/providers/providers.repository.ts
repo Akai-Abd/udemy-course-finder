@@ -30,10 +30,7 @@ export class ProvidersRepository {
     return this.prisma.log.create({ data });
   }
 
-  async updateLog(
-    id: string,
-    data: Prisma.LogUpdateInput,
-  ): Promise<Log> {
+  async updateLog(id: string, data: Prisma.LogUpdateInput): Promise<Log> {
     return this.prisma.log.update({
       where: { id },
       data,
@@ -94,4 +91,3 @@ export class ProvidersRepository {
     };
   }
 }
-

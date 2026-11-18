@@ -27,7 +27,10 @@ logger = logging.getLogger("StandaloneScraper")
 
 
 def run_all_scrapers():
-    db_path = os.environ.get("DATABASE_URL", "../backend/dev.db")
+    default_db = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../backend/dev.db")
+    )
+    db_path = os.environ.get("DATABASE_URL", default_db)
     logger.info(f"🚀 Starting Standalone Scraper Engine with DB: {db_path}")
 
     db = Database(db_path)

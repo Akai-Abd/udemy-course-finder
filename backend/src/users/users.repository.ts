@@ -20,7 +20,11 @@ export class UsersRepository {
     });
   }
 
-  async create(email: string, passwordHash: string, role: any = 'USER'): Promise<User> {
+  async create(
+    email: string,
+    passwordHash: string,
+    role: any = 'USER',
+  ): Promise<User> {
     return this.prisma.user.create({
       data: { email, passwordHash, role },
     });
@@ -46,4 +50,3 @@ export class UsersRepository {
     });
   }
 }
-

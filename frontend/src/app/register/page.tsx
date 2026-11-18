@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { authApi } from "@/lib/api-client";
+import { useAuth } from "@/lib/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { register } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -39,15 +40,13 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      const { data } = await authApi.register(email, password);
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
+      await register(email, password);
       toast.success("Account created successfully!");
       router.push("/dashboard");
     } catch (err: unknown) {
-      const errorObj = err as { response?: { data?: { message?: string | string[] } } };
-      const msg = errorObj.response?.data?.message || "Registration failed. Please try again.";
-      setError(Array.isArray(msg) ? msg[0] : msg);
+      const message =
+        err instanceof Error ? err.message : "Registration failed. Please try again.";
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }

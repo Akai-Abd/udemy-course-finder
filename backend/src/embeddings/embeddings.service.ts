@@ -49,7 +49,7 @@ export class EmbeddingsService implements OnModuleInit {
         normalize: true,
       });
 
-      return Array.from(output.data);
+      return Array.from(output.data as ArrayLike<number>);
     } catch (error) {
       this.logger.error(
         `Error generating embedding for text: "${text.substring(0, 50)}...":`,
