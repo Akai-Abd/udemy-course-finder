@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.5] - 2026-11-19
+
+### Features
+
+- Add parallel scraper execution in `scraper/run_all.py` with multi-threaded concurrent scraping (`max_workers=5`) for 5x–10x faster execution
+- Add browser extension assistant (`extension/` Manifest V3) with 1-click batch auto-enrollment and multi-tab opening using active Udemy sessions
+- Add community "Report Expired" flagging on course cards and backend API endpoint (`POST /courses/:id/report-expired`) to instantly deactivate exhausted coupons
+- Add "Today Only" discovery time-range filter (`timeRange=today|24h|all`) in backend repository, API DTO, and frontend catalog toolbar
+
+### Security & Stability
+
+- Harden CORS configuration in NestJS `main.ts` to enforce `CORS_ORIGIN` domain allowlisting in production environments
+- Add SQLite busy timeout (`timeout=30.0`) in `scraper/src/db.py` to ensure thread-safe connection pooling without database locking
+
 ## [1.0.4] - 2026-11-19
 
 ### Features

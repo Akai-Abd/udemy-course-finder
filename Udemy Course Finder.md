@@ -1,6 +1,6 @@
 # Udemy Course Finder — Production Requirement Document
 
-**Version:** 1.0.4  
+**Version:** 1.0.5  
 **Author:** Akai  
 **License:** MIT  
 **Last Updated:** 2026-11-19
@@ -815,7 +815,7 @@ udemy-course-finder/
 ├── docker-compose.override.yml     # Dev mode (hot reload, volume mounts)
 ├── .env.example                    # Environment template
 ├── .gitignore
-├── CHANGELOG.md                    # Release changelog (v1.0.2, v1.0.3, v1.0.4)
+├── CHANGELOG.md                    # Release changelog (v1.0.2, v1.0.3, v1.0.4, v1.0.5)
 ├── LICENSE                         # MIT License
 └── README.md                       # Project documentation
 ```
@@ -868,9 +868,9 @@ The scraper supports rotating HTTP proxies:
 
 ## 16. Current Project Status
 
-**Version:** 1.0.4 (released 2026-11-19)  
+**Version:** 1.0.5 (released 2026-11-19)  
 **Status:** Feature-complete, active development  
-**Git branch:** `main` (29ddea5)
+**Git branch:** `main` (998cda6)
 
 ### 16.1 What Is Fully Implemented
 
