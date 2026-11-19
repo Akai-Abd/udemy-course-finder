@@ -7,8 +7,10 @@
   
   [![NestJS](https://img.shields.io/badge/Backend-NestJS_11-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
   [![Next.js](https://img.shields.io/badge/Frontend-Next.js_16-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+  [![Extension](https://img.shields.io/badge/Extension-Manifest_V3-FF7139?style=for-the-badge&logo=googlechrome&logoColor=white)](extension/)
   [![Python](https://img.shields.io/badge/Scraper-Python_3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
   [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL_16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org/)
+  [![CI Scraper](https://img.shields.io/badge/CI_Automation-GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](.github/workflows/scrape.yml)
   [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com/)
 
 </div>
@@ -119,6 +121,18 @@ docker compose up -d
 > Services will be available at:
 > - **Frontend Dashboard**: `http://localhost:3001`
 > - **Backend API & Swagger**: `http://localhost:4001/api`
+
+---
+
+#### Mode C: Browser Extension Assistant (1-Click Auto-Enrollment)
+
+A lightweight Chromium & Firefox extension to 1-click batch enroll in fresh Udemy coupons directly using your active Udemy browser session.
+
+1. Navigate to your browser's extension manager (`chrome://extensions`, `edge://extensions`, or `brave://extensions`).
+2. Turn **ON** the **Developer mode** toggle.
+3. Click **Load unpacked** and select the [`extension/`](extension/) directory from this repository.
+4. Pin the **Udemy Course Finder Assistant** icon to your toolbar.
+5. Log into [Udemy](https://www.udemy.com) and click **⚡ 1-Click Auto-Enroll All** or **🌐 Open All in Tabs** to claim coupons instantly!
 
 ---
 
@@ -263,9 +277,14 @@ If you encounter issues during installation or runtime, refer to the resolutions
 
 - **🔍 Smart Search** — Full-text search + AI-powered semantic search (pgvector + HuggingFace embeddings)
 - **🤖 Recommendations** — Personalized course suggestions based on browsing history
+- **🧩 Browser Extension Assistant** — Chromium & Firefox extension (`extension/` Manifest V3) with 1-click batch auto-enrollment, opening untouched tabs, and coupon sync
 - **📊 Analytics Dashboard** — Time-series charts, category breakdowns, provider stats
 - **⭐ Favorites & History** — Save courses and track your browsing activity
 - **🎯 Opened / Enrollment Tracking** — Visual `OPENED` badges, state changes, and 1-click **Hide Opened** toolbar filter to hide already-enrolled courses
+- **⏱️ Time-Range Discovery Filters** — Filter course drops by **Today Only**, **Past 24 Hours**, or **All Time**
+- **🚩 Community Expiry Reporting** — Instant 1-click "Report Expired" flag on course cards (`POST /courses/:id/report-expired`) to immediately deactivate dead coupons
+- **⚡ Multi-Threaded Parallel Scraping** — Concurrent scraping across all 10 sources (`max_workers=5`) with SQLite busy timeout protection
+- **🤖 GitHub Actions Automation** — Scheduled 12-hour cron workflow (`.github/workflows/scrape.yml`) for automated zero-cost scraping to PostgreSQL
 - **🕷️ 10 Scrapers** — Modular scraper architecture with a 6-stage data pipeline
 - **🚀 Standalone & Queue Scraping** — BullMQ job queue orchestration plus a direct standalone runner (`run_all.py`)
 - **⏰ Auto-Scheduling** — Configurable scrape interval with background scheduler
@@ -287,9 +306,11 @@ If you encounter issues during installation or runtime, refer to the resolutions
 | Component | Technologies Used | Highlight |
 | :--- | :--- | :--- |
 | **🎨 Frontend** | Next.js 16, React 19, TailwindCSS 4 | TanStack Query, Recharts, shadcn/ui, mobile responsive |
+| **🧩 Extension** | Chromium / Firefox (Manifest V3) | 1-click batch auto-enrollment, active Udemy session reuse |
 | **⚙️ Backend** | NestJS 11, Prisma 7, Passport JWT | BullMQ, Swagger API Docs, Pino Logging |
-| **🕷️ Scraper** | Python 3.12, BeautifulSoup, requests | 6-stage pipeline, deduplication, proxy rotation |
-| **🗄️ Database** | PostgreSQL 16 + pgvector / SQLite | Vector search, relational data, indexing |
+| **🕷️ Scraper** | Python 3.12, BeautifulSoup, requests | 6-stage pipeline, multi-threaded (5 workers), proxy rotation |
+| **🤖 Automation** | GitHub Actions (`scrape.yml`) | Scheduled 12-hour automated zero-cost scraping cron |
+| **🗄️ Database** | PostgreSQL 16 + pgvector / SQLite | Vector search, relational data, indexing, thread-safe pooling |
 | **⚡ Cache/Queue**| Redis 7 | BullMQ job orchestration, token blacklist, caching |
 
 </div>
@@ -322,7 +343,7 @@ The backend exposes a full REST API (Swagger docs at `http://localhost:4000/api`
 | Module | Endpoints | Description |
 |--------|-----------|-------------|
 | **Auth** | `POST /auth/login`, `refresh`, `logout`, `PATCH /auth/password` | JWT authentication with refresh tokens |
-| **Courses** | `GET /courses`, `search`, `search/semantic`, `recommendations`, `stats`, `:id/similar` | Browse, search, AI-powered semantic search |
+| **Courses** | `GET /courses`, `search`, `search/semantic`, `recommendations`, `stats`, `:id/similar`, `POST :id/report-expired` | Browse, search, AI semantic search, time-range filter, report expired |
 | **Providers** | `GET /providers`, `PATCH :id`, `POST scrape`, `POST :id/test`, `:id/logs`, `:id/stats` | Manage scraper sources |
 | **Favorites** | `GET /favorites`, `POST`, `DELETE :courseId` | Save/remove favorite courses |
 | **History** | `GET /history`, `POST`, `DELETE` | Track browsing activity |
@@ -378,7 +399,7 @@ cd scraper
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# Run all 10 live scrapers directly (saves to dev.db or PostgreSQL without Redis):
+# Run all 10 live scrapers concurrently (multi-threaded, 5 workers, saves to dev.db or PostgreSQL without Redis):
 python run_all.py
 
 # Or run the BullMQ queue worker (requires Redis + BullMQ):
@@ -391,19 +412,19 @@ python -m src.main
 <summary><b>Click to view Testing commands</b></summary>
 
 ```bash
-# Backend unit tests
+# Backend unit tests (13 test suites, 83 tests)
 cd backend && npm test
 
 # Backend unit tests with coverage
 cd backend && npm run test:cov
 
-# Backend E2E tests
+# Backend E2E tests (6 test suites, 22 tests)
 cd backend && npm run test:e2e
 
 # Scraper tests
 cd scraper && python -m pytest tests/ -v
 
-# Frontend type check
+# Frontend type check & lint
 cd frontend && npx tsc --noEmit && npm run lint
 ```
 </details>
@@ -414,10 +435,13 @@ cd frontend && npx tsc --noEmit && npm run lint
 
 ```text
 udemy-course-finder/
+├── .github/                  # CI/CD workflows
+│   └── workflows/
+│       └── scrape.yml        # 12-hour automated course scraper cron (GitHub Actions)
 ├── backend/                  # NestJS API server
 │   ├── src/
 │   │   ├── auth/             # JWT authentication, token blacklist
-│   │   ├── courses/          # Course CRUD, search, semantic search
+│   │   ├── courses/          # Course CRUD, search, semantic search, expiry reporting
 │   │   ├── providers/        # Provider management, scrape triggers
 │   │   ├── favorites/        # User favorites
 │   │   ├── history/          # Browsing history tracking
@@ -430,22 +454,46 @@ udemy-course-finder/
 │   │   ├── settings/         # App settings
 │   │   └── common/           # Guards, filters, decorators, cache
 │   ├── prisma/               # Schema (PostgreSQL + SQLite), migrations, seed
-│   └── test/                 # E2E tests
+│   └── test/                 # E2E test suites (6 test specs)
 ├── frontend/                 # Next.js dashboard
 │   └── src/
 │       ├── app/              # App Router pages + custom favicon & branding
 │       ├── components/       # UI components (shadcn/ui, courses, analytics, layout, shared)
 │       └── lib/              # API client, hooks, utilities
+├── extension/                # Browser extension assistant (Manifest V3)
+│   ├── manifest.json         # Extension configuration & host permissions
+│   ├── popup.html            # Extension UI popup
+│   ├── popup.js              # 1-click auto-enrollment & tab orchestration
+│   ├── icon.png              # Extension toolbar branding
+│   └── README.md             # Extension installation & usage guide
 ├── scraper/                  # Python scraping worker
-│   ├── run_all.py            # Standalone live scraper runner (all 10 providers)
+│   ├── run_all.py            # Standalone parallel live scraper runner (10 providers)
 │   └── src/
 │       ├── providers/        # 10 scraper implementations
 │       ├── pipeline/         # normalize → validate → filter → dedup → store
 │       └── utils/            # HTTP client, URL parser, logging
 ├── docker-compose.yml        # Service orchestration (5 containers)
 ├── docker-compose.override.yml # Dev mode overrides (hot reload)
+├── Deployment Strategy       # Detailed cloud production deployment guide
+├── Free Deployment Strategy  # 100% free cloud deployment guide (Vercel + Koyeb + Supabase + GitHub Actions)
 └── .env.example              # Environment configuration template
 ```
+
+---
+
+## ☁️ Free Cloud Deployment
+
+Deploy the entire stack with zero monthly server costs using modern free-tier services:
+
+| Component | Platform | Free Tier Highlights |
+| :--- | :--- | :--- |
+| **Frontend** | [Vercel](https://vercel.com) | Next.js native host, edge CDN, auto-HTTPS |
+| **Backend API** | [Koyeb](https://koyeb.com) or [Render](https://render.com) | Always-on free web service / container runtime |
+| **Database** | [Supabase](https://supabase.com) or [Neon](https://neon.tech) | Managed PostgreSQL 16 + native `pgvector` support |
+| **Scraper Automation** | [GitHub Actions](.github/workflows/scrape.yml) | Scheduled 12-hour cron workflow direct to database |
+| **Batch Enrollment** | [Browser Extension](extension/) | 1-click auto-enrollment in user's browser session |
+
+> 📖 **Read the step-by-step instructions in [`Free Deployment Strategy`](Free%20Deployment%20Strategy)** and [`Deployment Strategy`](Deployment%20Strategy).
 
 ---
 

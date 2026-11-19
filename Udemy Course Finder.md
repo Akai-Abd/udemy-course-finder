@@ -3,15 +3,16 @@
 **Version:** 1.0.5  
 **Author:** Akai  
 **License:** MIT  
-**Last Updated:** 2026-11-19
+**Last Updated:** 2026-11-19  
+**Git Head:** `9346384` (`main`)
 
 ---
 
 ## 1. Executive Summary
 
-Udemy Course Finder is a self-hosted, full-stack application that continuously discovers 100%-free Udemy courses by scraping 10 coupon aggregator websites. Scraped data flows through a 6-stage normalization pipeline, is deduplicated, stored in PostgreSQL, and served through a REST API to a modern Next.js dashboard with AI-powered semantic search.
+Udemy Course Finder is a self-hosted, full-stack application that continuously discovers 100%-free Udemy courses by scraping 10 coupon aggregator websites. Scraped data flows through a 6-stage normalization pipeline, is deduplicated, stored in PostgreSQL/SQLite, and served through a REST API to a modern Next.js dashboard with AI-powered semantic search, complemented by a Chromium/Firefox browser extension assistant for 1-click batch enrollment and automated zero-cost scraping via GitHub Actions.
 
-**Core value:** Replaces manual browsing of 10+ ad-heavy coupon sites with a single, clean, searchable interface that updates automatically.
+**Core value:** Replaces manual browsing of 10+ ad-heavy coupon sites with a single, clean, searchable interface that updates automatically and enrolls in courses with one click.
 
 ---
 
@@ -20,6 +21,12 @@ Udemy Course Finder is a self-hosted, full-stack application that continuously d
 ### 2.1 High-Level Overview
 
 ```
+┌──────────────────────┐
+│  Browser Extension   │ (1-Click Batch Enrollment & Tab Orchestrator)
+│  (Chromium / Firefox)│
+└──────────┬───────────┘
+           │ Direct / REST
+           ▼
 ┌──────────────┐      REST/JSON       ┌──────────────────┐
 │  Next.js 16  │◄────────────────────►│   NestJS 11      │
 │  Frontend    │                      │   Backend API    │
@@ -33,10 +40,17 @@ Udemy Course Finder is a self-hosted, full-stack application that continuously d
                               │16+pgvec  │ │  7   │ │ Job Queue  │
                               └─────▲────┘ └──▲───┘ └───▲────────┘
                                     │         │         │
-                              ┌─────┴─────────┴─────────┴───┐
-                              │   Python 3.12 Scraper Engine │
-                              │   (10 Provider Scrapers)     │
-                              └──────────────────────────────┘
+                ┌───────────────────┴─────────┴─────────┴───┐
+                │        Python 3.12 Scraper Engine         │
+                │  - Parallel Standalone Runner (5 workers)  │
+                │  - BullMQ Redis Queue Consumer             │
+                │  - GitHub Actions 12h Cron Automation      │
+                └───────────────────▲───────────────────────┘
+                                    │ HTTP
+                                    ▼
+                         ┌─────────────────────┐
+                         │ 10 Coupon Providers │
+                         └─────────────────────┘
 ```
 
 ### 2.2 Container Topology (Docker Compose)
@@ -132,6 +146,24 @@ Frontend fetches via REST API
 | Cache / Queue | Redis | 7 (Alpine) |
 | Containerization | Docker + Docker Compose | — |
 | Vector Dimensions | 384 (all-MiniLM-L6-v2) | — |
+
+### 3.5 Browser Extension Assistant
+
+| Concern | Technology | Version / Specification |
+|---------|-----------|-------------------------|
+| Platform | Chromium (Chrome, Edge, Brave) & Firefox | Manifest V3 |
+| Extension APIs | `chrome.tabs`, `chrome.storage`, `chrome.scripting` | — |
+| Automation | 1-click batch enrollment & multi-tab opening | Vanilla JS + HTML5 |
+| Host Permissions | `https://www.udemy.com/*`, `http://localhost:4000/*`, `http://localhost:4001/*` | — |
+
+### 3.6 CI/CD & Automation
+
+| Concern | Technology | Version / Specification |
+|---------|-----------|-------------------------|
+| Orchestration | GitHub Actions (`.github/workflows/scrape.yml`) | — |
+| Actions | `actions/checkout@v7`, `actions/setup-python@v7` | Node 24 runtime |
+| Automation Trigger | Cron (`0 */12 * * *`) + `workflow_dispatch` manual trigger | Every 12 hours |
+| Runtime | Python 3.12 with pip cache & PostgreSQL connection | — |
 
 ---
 
@@ -239,7 +271,7 @@ Setting (standalone key-value)
 
 **Base URL:** `http://localhost:4000` (dev) / `http://localhost:4001` (Docker)  
 **Swagger Docs:** `/api`  
-**CORS:** Permissive (`origin: true`) — all origins allowed with credentials
+**CORS:** Enforces `CORS_ORIGIN` allowlist in production, dynamically supports `*.vercel.app` subdomains, and permits all origins in development (`origin.endsWith('.vercel.app') || !origin || allowedOrigins.includes(origin) || NODE_ENV !== 'production'`)
 
 ### 6.1 Auth (`/auth`)
 
@@ -255,14 +287,15 @@ Setting (standalone key-value)
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `GET` | `/courses` | JWT | Paginated course listing with filters |
-| `GET` | `/courses/search` | JWT | Full-text search with pagination |
+| `GET` | `/courses` | JWT | Paginated course listing with filters (`categoryId`, `providerId`, `sortBy`, `expiryStatus`, `language`, `timeRange=today\|24h\|all`) |
+| `GET` | `/courses/search` | JWT | Full-text search with pagination & filters |
 | `GET` | `/courses/search/semantic` | JWT | AI-powered semantic search (pgvector) |
 | `GET` | `/courses/recommendations` | JWT | Personalized recommendations from history |
 | `GET` | `/courses/export` | JWT | Export courses as CSV or JSON (query: `format`, `type`) |
 | `GET` | `/courses/stats` | JWT | Course statistics (total, active, expiring) |
 | `GET` | `/courses/:id` | JWT | Single course details |
 | `GET` | `/courses/:id/similar` | JWT | Similar courses (vector similarity) |
+| `POST` | `/courses/:id/report-expired` | JWT | Report an expired/exhausted coupon (marks coupon source inactive immediately) |
 
 ### 6.3 Providers (`/providers`)
 
@@ -333,8 +366,9 @@ The scraper engine supports two execution modes:
 
 2. **Standalone Runner (`run_all.py`)**:
    - Direct Python execution without requiring Redis or BullMQ
-   - Sequentially scrapes all 10 providers and stores results directly in PostgreSQL or SQLite (`dev.db`)
-   - Invoked directly from CLI (`python3 run_all.py`) or auto-triggered every 30m by NestJS `jobs.service.ts` when running in standalone mode (`ENABLE_REDIS=false`)
+   - Concurrent parallel scraping across all 10 providers using `ThreadPoolExecutor(max_workers=5)` for 5x–10x faster execution
+   - Thread-safe persistence with SQLite busy timeout protection (`timeout=30.0`) and PostgreSQL DSN URL connection pooling
+   - Invoked directly from CLI (`python scraper/run_all.py`), auto-triggered every 30m by NestJS `jobs.service.ts` in standalone mode (`ENABLE_REDIS=false`), or executed via automated 12-hour cron workflow in GitHub Actions (`.github/workflows/scrape.yml`)
 
 ### 7.2 Job Types
 
@@ -452,14 +486,22 @@ class ScrapedCourse:
 - **Mobile Responsive:** Drawer navigation for mobile viewports
 - **Semantic Search:** Toggle between full-text and AI-powered vector search
 - **Real-time Notifications:** Bell icon with unread count badge
-- **Course Cards:** Thumbnail, title, instructor, rating, category, expiry countdown, favorite toggle, and visual `OPENED` badge with `Open Again` action button
+- **Course Cards:** Thumbnail, title, instructor, rating, category, expiry countdown, favorite toggle, visual `OPENED` badge with `Open Again` action button, and community **Report Expired** flag button (`POST /courses/:id/report-expired`) to instantly deactivate broken coupons
 - **Course Detail Page:** Single-course view with similar course recommendations
 - **Course Export:** Download courses as CSV or JSON (all or favorites)
-- **Course Filters:** Category, provider, expiry status, language filters, and 1-click **Hide Opened** toolbar toggle
+- **Course Filters:** Category, provider, expiry status, language filters, 1-click **Hide Opened** toolbar toggle, and discovery time-range filter (**Today Only**, **Past 24 Hours**, **All Time**)
 - **Enrolled / Click Tracking:** Optimistic UI state tracking so clicked/enrolled courses immediately dim and show `OPENED` status
 - **Grid/List View Toggle:** Switch between grid and compact list view modes
 - **Analytics Charts:** Time-series (courses/day), category breakdown (pie), provider comparison (bar)
 - **Provider Management:** Enable/disable, trigger scrape, test connectivity, view logs with stats
+
+### 8.3 Browser Extension Assistant (`extension/`)
+
+- **Cross-Browser Support:** Manifest V3 extension compatible with Google Chrome, Brave, Microsoft Edge, and Mozilla Firefox
+- **Active Session Reuse:** Leverages the user's active `udemy.com` browser session directly—no user credentials or API tokens stored
+- **1-Click Auto-Enroll All:** Automatically opens coupon tabs in the background, triggers 100% free coupon redemption, and closes tabs upon successful enrollment
+- **Batch Tab Launcher:** Opens up to 15 untouched course links at once in background tabs
+- **Live Local/Cloud Sync:** Syncs freshly discovered coupons directly with local (`localhost:4000`) or cloud-deployed API instances
 
 ---
 
@@ -493,7 +535,7 @@ Logout
 | Rate Limiting | 100 requests per 60 seconds per IP (ThrottlerGuard) |
 | Input Validation | class-validator whitelist + forbidNonWhitelisted |
 | HTTP Headers | Helmet middleware (crossOriginResourcePolicy: cross-origin) |
-| CORS | Permissive (`origin: true`, `credentials: true`) — all origins allowed |
+| CORS | Production allowlist via `CORS_ORIGIN` + dynamic `*.vercel.app` matching (`credentials: true`), permissive in dev |
 | Role-Based Access | `@Roles(Role.ADMIN)` decorator for admin-only endpoints |
 
 ---
@@ -626,18 +668,28 @@ On first startup, `prisma db seed` creates:
 
 ### 13.1 Test File Inventory
 
-**Backend Unit Tests:**
-- `courses.service.spec.ts` — Course service logic
-- `courses.repository.spec.ts` — Course repository queries
-- `jobs.service.spec.ts` — BullMQ job scheduling
+**Backend Unit Tests (13 test suites, 83 passed tests):**
+- `analytics.service.spec.ts` — Analytics calculation & time-series overview
+- `providers.repository.spec.ts` — Provider repository data access
+- `auth.service.spec.ts` — User authentication, JWT issuance & verification
+- `jobs.service.spec.ts` — Scraper job scheduling, BullMQ queue & standalone runner
+- `providers.service.spec.ts` — Provider status management & health checks
+- `courses.repository.spec.ts` — Course queries, time-range filtering & expiry status
+- `jwt-auth.guard.spec.ts` — JWT guard authentication & @Public() decorator bypass
+- `global-exception.filter.spec.ts` — Global exception filter & error response formatting
+- `courses.service.spec.ts` — Course business logic & coupon expiry reporting
+- `users.service.spec.ts` — User role administration & user management
+- `auth.controller.spec.ts` — Auth controller endpoints & DTO validation
+- `history.service.spec.ts` — User browsing history actions & tracking
+- `favorites.service.spec.ts` — User favorites CRUD operations
 
-**Backend E2E Tests:**
-- `app.e2e-spec.ts` — App bootstrap
-- `auth.e2e-spec.ts` — Login, register, refresh, logout
-- `courses.e2e-spec.ts` — Course CRUD + search
-- `favorites.e2e-spec.ts` — Favorites CRUD
-- `history.e2e-spec.ts` — History tracking
-- `providers.e2e-spec.ts` — Provider management + scrape triggers
+**Backend E2E Tests (6 test suites, 22 passed tests):**
+- `app.e2e-spec.ts` — App bootstrap & API health check
+- `auth.e2e-spec.ts` — Login, register, token refresh, and logout blacklist
+- `courses.e2e-spec.ts` — Course catalog listing, search, filtering, and expiry reporting
+- `favorites.e2e-spec.ts` — Favorites add, list, and removal CRUD
+- `history.e2e-spec.ts` — History recording (VIEWED/CLICKED/ENROLLED) & clear
+- `providers.e2e-spec.ts` — Provider management, listing, and scrape triggers
 
 **Scraper Tests:**
 - `test_pipeline.py` — Full pipeline integration
@@ -653,23 +705,35 @@ On first startup, `prisma db seed` creates:
 
 ```
 udemy-course-finder/
+├── .github/                        # CI/CD workflows
+│   └── workflows/
+│       └── scrape.yml              # 12-hour automated course scraper cron (GitHub Actions)
 ├── backend/                        # NestJS API server
 │   ├── src/
-│   │   ├── main.ts                 # Bootstrap: Swagger, CORS, Helmet, Pipes, Filters
+│   │   ├── main.ts                 # Bootstrap: Swagger, CORS allowlist, Helmet, Pipes, Filters
 │   │   ├── app.module.ts           # Root module: all imports + global guards
 │   │   ├── auth/                   # JWT auth, Argon2 hashing, token blacklist
-│   │   ├── courses/                # Course CRUD, search, semantic search, export
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── auth.service.ts
+│   │   │   ├── auth.controller.spec.ts
+│   │   │   └── auth.service.spec.ts
+│   │   ├── courses/                # Course CRUD, search, semantic search, expiry reporting
 │   │   │   ├── courses.controller.ts
 │   │   │   ├── courses.service.ts
 │   │   │   ├── courses.repository.ts
 │   │   │   ├── courses.module.ts
 │   │   │   ├── courses.service.spec.ts
 │   │   │   ├── courses.repository.spec.ts
-│   │   │   └── dto/                # ListCoursesDto, SearchCoursesDto
+│   │   │   └── dto/                # ListCoursesDto (timeRange, expiryStatus), SearchCoursesDto
 │   │   ├── providers/              # Provider management, scrape triggers
+│   │   │   ├── providers.service.spec.ts
+│   │   │   └── providers.repository.spec.ts
 │   │   ├── favorites/              # User favorites CRUD
-│   │   ├── history/                # Browsing history tracking
+│   │   │   └── favorites.service.spec.ts
+│   │   ├── history/                # Browsing history tracking (VIEWED, CLICKED, ENROLLED)
+│   │   │   └── history.service.spec.ts
 │   │   ├── analytics/              # Dashboard analytics (overview, time-series)
+│   │   │   └── analytics.service.spec.ts
 │   │   ├── categories/             # 13 course categories
 │   │   ├── jobs/                   # BullMQ job scheduling + standalone Python fallback
 │   │   │   ├── jobs.module.ts
@@ -678,14 +742,15 @@ udemy-course-finder/
 │   │   ├── embeddings/             # HuggingFace vector embeddings (384-dim)
 │   │   ├── notifications/          # In-app notifications + preferences
 │   │   ├── users/                  # Admin user management (RBAC)
+│   │   │   └── users.service.spec.ts
 │   │   ├── settings/               # App settings (key-value)
 │   │   ├── prisma/                 # Prisma service module
 │   │   ├── config/                 # ConfigModule setup
 │   │   └── common/                 # Guards, filters, decorators, cache, logger
 │   │       ├── cache/              # Redis cache module
 │   │       ├── decorators/         # @Public(), @CurrentUser(), @Roles()
-│   │       ├── filters/            # GlobalExceptionFilter
-│   │       ├── guards/             # JwtAuthGuard
+│   │       ├── filters/            # GlobalExceptionFilter (global-exception.filter.spec.ts)
+│   │       ├── guards/             # JwtAuthGuard (jwt-auth.guard.spec.ts)
 │   │       ├── helpers/            # active-filter.helper.ts
 │   │       ├── interceptors/       # (reserved)
 │   │       └── logger/             # Pino logger module
@@ -694,7 +759,7 @@ udemy-course-finder/
 │   │   ├── schema.sqlite.prisma    # SQLite schema (local dev)
 │   │   ├── seed.ts                 # Seed: admin, 10 providers, 13 categories, 10 courses
 │   │   └── migrations/             # Prisma migrations
-│   ├── test/                       # E2E tests (6 spec files)
+│   ├── test/                       # E2E test suites (6 spec files, 22 passed tests)
 │   │   ├── app.e2e-spec.ts
 │   │   ├── auth.e2e-spec.ts
 │   │   ├── courses.e2e-spec.ts
@@ -718,7 +783,7 @@ udemy-course-finder/
 │   │   │       ├── layout.tsx      # Sidebar + topbar shell
 │   │   │       ├── dashboard/      # Overview dashboard
 │   │   │       ├── courses/        # Course browse + search
-│   │   │       │   ├── page.tsx    # Course catalog (grid/list, filters, export)
+│   │   │       │   ├── page.tsx    # Course catalog (grid/list, filters, time-range, export)
 │   │   │       │   └── [id]/page.tsx # Course detail + similar courses
 │   │   │       ├── favorites/      # Saved courses
 │   │   │       ├── history/        # Browsing history
@@ -737,7 +802,7 @@ udemy-course-finder/
 │   │   │   │   ├── sidebar.tsx
 │   │   │   │   ├── header.tsx
 │   │   │   │   └── notification-bell.tsx
-│   │   │   ├── courses/            # Course card, filters, export button
+│   │   │   ├── courses/            # Course card (expiry flag), filters, export button
 │   │   │   │   ├── course-card.tsx
 │   │   │   │   ├── course-filters.tsx
 │   │   │   │   └── export-button.tsx
@@ -767,12 +832,18 @@ udemy-course-finder/
 │   ├── Dockerfile                  # 3-stage Alpine build (standalone output)
 │   ├── next.config.ts              # Standalone output, unoptimized images, remote patterns
 │   └── package.json
+├── extension/                      # Browser extension assistant (Manifest V3)
+│   ├── manifest.json               # Extension configuration & host permissions
+│   ├── popup.html                  # Extension UI popup
+│   ├── popup.js                    # 1-click auto-enrollment & tab orchestration
+│   ├── icon.png                    # Extension branding icon
+│   └── README.md                   # Extension quick-start installation guide
 ├── scraper/                        # Python scraping worker
-│   ├── run_all.py                  # Standalone live scraper runner (10 providers)
+│   ├── run_all.py                  # Standalone parallel live scraper runner (10 providers, 5 workers)
 │   ├── src/
 │   │   ├── main.py                 # ScraperEngine: orchestrator, scheduler, job handler
 │   │   ├── config.py               # Typed Config dataclass from environment
-│   │   ├── db.py                   # PostgreSQL connection pool (psycopg2) + SQLite fallback
+│   │   ├── db.py                   # Thread-safe PostgreSQL pool + SQLite fallback with busy timeout
 │   │   ├── queue.py                # BullMQ-compatible Redis job consumer
 │   │   ├── models.py               # ScrapedCourse + ScrapeResult dataclasses
 │   │   ├── providers/
@@ -793,7 +864,7 @@ udemy-course-finder/
 │   │   │   ├── validator.py        # Stage 2: Required fields + URL format
 │   │   │   ├── language_filter.py  # Stage 3: langdetect English filter
 │   │   │   ├── deduplicator.py     # Stage 4: Dedup by course ID, prefer richer
-│   │   │   ├── store.py            # Stage 5: Upsert to PostgreSQL
+│   │   │   ├── store.py            # Stage 5: Upsert to PostgreSQL/SQLite
 │   │   │   └── expiry_validator.py # Stage 6: Verify coupon URL liveness
 │   │   ├── utils/
 │   │   │   ├── http_client.py      # requests-based HTTP client with retry + proxy
@@ -813,6 +884,8 @@ udemy-course-finder/
 │   └── requirements.txt
 ├── docker-compose.yml              # Production orchestration (5 containers)
 ├── docker-compose.override.yml     # Dev mode (hot reload, volume mounts)
+├── Deployment Strategy             # Detailed cloud production deployment guide
+├── Free Deployment Strategy        # 100% free cloud deployment guide (Vercel + Koyeb + Supabase + GitHub Actions)
 ├── .env.example                    # Environment template
 ├── .gitignore
 ├── CHANGELOG.md                    # Release changelog (v1.0.2, v1.0.3, v1.0.4, v1.0.5)
@@ -870,41 +943,44 @@ The scraper supports rotating HTTP proxies:
 
 **Version:** 1.0.5 (released 2026-11-19)  
 **Status:** Feature-complete, active development  
-**Git branch:** `main` (998cda6)
+**Git branch:** `main` (commit `9346384`)
 
 ### 16.1 What Is Fully Implemented
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Backend API (15 modules) | ✅ Complete | All endpoints functional, Swagger docs live |
-| Frontend Dashboard (10 pages) | ✅ Complete | All routes implemented with full UI |
-| Python Scraper (10 providers) | ✅ Complete | 6-stage pipeline, BullMQ consumer, standalone runner |
-| Database Schema (15 tables) | ✅ Complete | PostgreSQL + pgvector, SQLite fallback |
+| Backend API (15 modules) | ✅ Complete | All endpoints functional, Swagger docs live, expiry reporting & time-range filters |
+| Frontend Dashboard (10 pages) | ✅ Complete | All routes implemented with full UI, `OPENED` tracking, time-range filter, expiry report |
+| Browser Extension (`extension/`) | ✅ Complete | Manifest V3 assistant for 1-click batch enrollment & multi-tab opening |
+| Python Scraper (10 providers) | ✅ Complete | 6-stage pipeline, multi-threaded parallel runner (5 workers), SQLite timeout protection |
+| GitHub Actions Automation | ✅ Complete | Scheduled 12-hour cron workflow (`.github/workflows/scrape.yml`) for zero-cost scraping |
+| Database Schema (15 tables) | ✅ Complete | PostgreSQL + pgvector, SQLite fallback (`dev.db`), DSN connection string support |
 | Docker Compose (5 containers) | ✅ Complete | Production + dev override configs |
-| Authentication + RBAC | ✅ Complete | JWT, Argon2, refresh, blacklist, admin role |
+| Authentication + RBAC | ✅ Complete | JWT, Argon2, refresh, blacklist, admin role, hardened CORS |
 | Semantic Search (pgvector) | ✅ Complete | HuggingFace all-MiniLM-L6-v2 embeddings |
 | Course Export (CSV/JSON) | ✅ Complete | All courses or favorites |
-| Enrolled / Click Tracking | ✅ Complete | Visual `OPENED` tags, `Hide Opened` toolbar toggle |
-| Test Suites | ✅ Complete | 3 unit specs, 6 E2E specs, 6 pytest files |
+| Enrolled / Click Tracking | ✅ Complete | Visual `OPENED` tags, `Hide Opened` toolbar toggle, optimistic local history updates |
+| Test Suites | ✅ Complete | 13 unit specs (83 passed tests), 6 E2E specs (22 passed tests), 6 pytest files |
 | SQLite Standalone Mode | ✅ Complete | `ENABLE_REDIS=false` for local dev without Docker |
 
 ### 16.2 Known Issues / Technical Debt
 
 | Issue | Severity | Details |
 |-------|----------|--------|
-| CORS is fully permissive | Low | `origin: true` allows all origins; `CORS_ORIGIN` env var is defined but not used in `main.ts` |
-| Frontend `api/` route dirs empty | Info | Directory structure exists but contains no route handler files |
+| CORS domain allowlisting | Resolved | Enforces `CORS_ORIGIN` allowlist in production with dynamic `*.vercel.app` matching in `backend/src/main.ts` |
+| Frontend `api/` route dirs empty | Info | Directory structure exists for Next.js App Router API route handlers if required |
 | Scraper path resolution | Resolved | `jobs.service.ts` uses multi-candidate dynamic path search (`process.cwd()`, `__dirname`, etc.) |
-| No CI/CD pipeline | Info | No GitHub Actions or deployment automation configured |
-| No deployment target configured | Info | Project runs locally only; deployment strategy under evaluation |
+| Scraper automation CI/CD | Resolved | Added `.github/workflows/scrape.yml` automated 12-hour cron workflow with Python 3.12 |
+| Deployment strategies | Resolved | Documented complete architectures in `Free Deployment Strategy` and `Deployment Strategy` |
 
-### 16.3 Deployment Status
+### 16.3 Deployment Architecture (Zero-Cost Cloud Deployment)
 
-Not yet deployed. Free-tier deployment options under evaluation:
-- **Frontend:** Vercel (Next.js native support)
-- **Backend:** Render (free web service)
-- **Database:** Supabase (PostgreSQL + pgvector)
-- **Scraper:** Render background worker or cron job
+Documented and verified deployment architecture (see [`Free Deployment Strategy`](Free%20Deployment%20Strategy)):
+- **Frontend:** [Vercel](https://vercel.com) (Next.js 16 native hosting, global edge CDN, auto-HTTPS)
+- **Backend:** [Koyeb](https://koyeb.com) or [Render](https://render.com) (24/7 web service running NestJS 11)
+- **Database:** [Supabase](https://supabase.com) or [Neon](https://neon.tech) (PostgreSQL 16 with pgvector extension)
+- **Background Scraper:** [GitHub Actions](.github/workflows/scrape.yml) (Runs `scraper/run_all.py` on 12-hour cron)
+- **Enrollment Automation:** [Browser Extension](extension/) (Direct batch enrollment from user's active browser)
 
 ---
 
