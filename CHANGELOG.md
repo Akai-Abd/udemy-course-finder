@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.0.6] - 2026-11-19
+
+### Automation & CI/CD
+
+- Add GitHub Actions scheduled scraper workflow (`.github/workflows/scrape.yml`) running every 12 hours (`0 */12 * * *`) with manual `workflow_dispatch` trigger
+- Upgrade GitHub Actions to `actions/checkout@v7` and `actions/setup-python@v7` with Node 24 runtime support and pip dependency caching
+- Add database connection validation check in CI workflow to ensure `DATABASE_URL` secret availability before execution
+
+### Scraper Engine & Database
+
+- Support full PostgreSQL connection string / DSN formatting in `scraper/src/db.py` to seamlessly connect with cloud databases (Supabase, Neon)
+- Harden database connection pool error handling and logging during connection attempts
+
+### Security & Networking
+
+- Support dynamic wildcard matching for `*.vercel.app` frontend preview and production domains in NestJS CORS policy (`main.ts`)
+- Retain configurable `CORS_ORIGIN` allowlist enforcement for custom production domains
+
+### Testing & Verification
+
+- Overhaul end-to-end test suite (`test/*.e2e-spec.ts`) with module configuration adjustments for authentication, Redis caching, and database seeding
+- Verify all 13 backend unit test suites (83 tests) and 6 E2E test suites (22 tests) passing without errors
+
+### Documentation & Deployment
+
+- Add comprehensive [`Free Deployment Strategy`](Free%20Deployment%20Strategy) guide outlining a 100% free serverless architecture using Vercel, Koyeb/Render, Supabase/Neon, and GitHub Actions
+- Update [`README.md`](README.md) and [`Udemy Course Finder.md`](Udemy%20Course%20Finder.md) with browser extension installation steps, parallel scraping documentation, updated API endpoints, and resolved technical debt
+
 ## [1.0.5] - 2026-11-19
 
 ### Features

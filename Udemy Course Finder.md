@@ -1,6 +1,6 @@
 # Udemy Course Finder — Production Requirement Document
 
-**Version:** 1.0.5  
+**Version:** 1.0.6  
 **Author:** Akai  
 **License:** MIT  
 **Last Updated:** 2026-11-19  
@@ -888,7 +888,7 @@ udemy-course-finder/
 ├── Free Deployment Strategy        # 100% free cloud deployment guide (Vercel + Koyeb + Supabase + GitHub Actions)
 ├── .env.example                    # Environment template
 ├── .gitignore
-├── CHANGELOG.md                    # Release changelog (v1.0.2, v1.0.3, v1.0.4, v1.0.5)
+├── CHANGELOG.md                    # Release changelog (v1.0.2, v1.0.3, v1.0.4, v1.0.5, v1.0.6)
 ├── LICENSE                         # MIT License
 └── README.md                       # Project documentation
 ```
@@ -941,7 +941,7 @@ The scraper supports rotating HTTP proxies:
 
 ## 16. Current Project Status
 
-**Version:** 1.0.5 (released 2026-11-19)  
+**Version:** 1.0.6 (released 2026-11-19)  
 **Status:** Feature-complete, active development  
 **Git branch:** `main` (commit `9346384`)
 
