@@ -23,7 +23,20 @@ async function bootstrap() {
     ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
     : ['http://localhost:3000', 'http://localhost:3001'];
   app.enableCors({
-    origin: process.env.NODE_ENV === 'production' ? allowedOrigins : true,
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.vercel.app') ||
+        process.env.NODE_ENV !== 'production'
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'), false);
+    },
     credentials: true,
   });
 
