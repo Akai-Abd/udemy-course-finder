@@ -4,12 +4,16 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { CoursesModule } from '../src/courses/courses.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { PrismaModule } from '../src/prisma/prisma.module';
+import { RedisCacheModule } from '../src/common/cache/redis-cache.module';
 import { ConfigModule } from '../src/config/config.module';
 import { RedisCacheService } from '../src/common/cache/redis-cache.service';
-import { JwtService, JwtModule } from '@nestjs/jwt';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { TokenBlacklistService } from '../src/auth/token-blacklist.service';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
+import { AuthModule } from '../src/auth/auth.module';
 
 describe('Courses (e2e)', () => {
   let app: INestApplication<App>;
@@ -40,13 +44,12 @@ describe('Courses (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
         ConfigModule,
+        PrismaModule,
+        RedisCacheModule,
+        AuthModule,
         CoursesModule,
-        JwtModule.register({ secret: 'test-secret' }),
       ],
-      providers: [
-        TokenBlacklistService,
-        { provide: APP_GUARD, useClass: JwtAuthGuard },
-      ],
+      providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
     })
       .overrideProvider(PrismaService)
       .useValue(mockPrisma)
@@ -62,13 +65,17 @@ describe('Courses (e2e)', () => {
     );
     await app.init();
 
+    const configService = moduleFixture.get<ConfigService>(ConfigService);
     const jwtService = moduleFixture.get<JwtService>(JwtService);
-    authToken = jwtService.sign({
-      sub: 'user-1',
-      email: 'test@test.com',
-      role: 'USER',
-      jti: 'jti-1',
-    });
+    authToken = jwtService.sign(
+      {
+        sub: 'user-1',
+        email: 'test@test.com',
+        role: 'USER',
+        jti: 'jti-1',
+      },
+      { secret: configService.get<string>('JWT_SECRET') },
+    );
   });
 
   afterAll(async () => {

@@ -6,8 +6,12 @@ import { JwtService } from '@nestjs/jwt';
 import { AuthModule } from '../src/auth/auth.module';
 import { UsersModule } from '../src/users/users.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { PrismaModule } from '../src/prisma/prisma.module';
 import { ConfigModule } from '../src/config/config.module';
 import { TokenBlacklistService } from '../src/auth/token-blacklist.service';
+
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
 
 describe('Auth (e2e)', () => {
   let app: INestApplication<App>;
@@ -28,7 +32,8 @@ describe('Auth (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [ConfigModule, AuthModule, UsersModule],
+      imports: [ConfigModule, PrismaModule, AuthModule, UsersModule],
+      providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
     })
       .overrideProvider(PrismaService)
       .useValue(mockPrisma)

@@ -4,12 +4,15 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { ProvidersModule } from '../src/providers/providers.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { PrismaModule } from '../src/prisma/prisma.module';
 import { ConfigModule } from '../src/config/config.module';
-import { JwtService, JwtModule } from '@nestjs/jwt';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { TokenBlacklistService } from '../src/auth/token-blacklist.service';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
 import { JobsService } from '../src/jobs/jobs.service';
+import { AuthModule } from '../src/auth/auth.module';
 
 describe('Providers (e2e)', () => {
   let app: INestApplication<App>;
@@ -31,6 +34,8 @@ describe('Providers (e2e)', () => {
       count: jest.fn().mockResolvedValue(9),
     },
     log: {
+      create: jest.fn().mockResolvedValue({ id: 'log-1' }),
+      update: jest.fn().mockResolvedValue({ id: 'log-1' }),
       findMany: jest.fn().mockResolvedValue([]),
       count: jest.fn().mockResolvedValue(0),
       findFirst: jest.fn().mockResolvedValue(null),
@@ -46,6 +51,7 @@ describe('Providers (e2e)', () => {
   const mockJobsService = {
     enqueueScrapeJob: jest.fn().mockResolvedValue('job-1'),
     enqueueTestJob: jest.fn().mockResolvedValue('test-job-1'),
+    triggerPythonScraper: jest.fn(),
     retryJob: jest
       .fn()
       .mockResolvedValue({ success: true, message: 'Retried' }),
@@ -53,15 +59,8 @@ describe('Providers (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        ConfigModule,
-        ProvidersModule,
-        JwtModule.register({ secret: 'test-secret' }),
-      ],
-      providers: [
-        TokenBlacklistService,
-        { provide: APP_GUARD, useClass: JwtAuthGuard },
-      ],
+      imports: [ConfigModule, PrismaModule, AuthModule, ProvidersModule],
+      providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
     })
       .overrideProvider(PrismaService)
       .useValue(mockPrisma)
@@ -77,13 +76,17 @@ describe('Providers (e2e)', () => {
     );
     await app.init();
 
+    const configService = moduleFixture.get<ConfigService>(ConfigService);
     const jwtService = moduleFixture.get<JwtService>(JwtService);
-    authToken = jwtService.sign({
-      sub: 'user-1',
-      email: 'test@test.com',
-      role: 'ADMIN',
-      jti: 'jti-1',
-    });
+    authToken = jwtService.sign(
+      {
+        sub: 'user-1',
+        email: 'test@test.com',
+        role: 'ADMIN',
+        jti: 'jti-1',
+      },
+      { secret: configService.get<string>('JWT_SECRET') },
+    );
   });
 
   afterAll(async () => {

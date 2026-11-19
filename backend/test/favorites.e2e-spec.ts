@@ -4,11 +4,14 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { FavoritesModule } from '../src/favorites/favorites.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { PrismaModule } from '../src/prisma/prisma.module';
 import { ConfigModule } from '../src/config/config.module';
-import { JwtService, JwtModule } from '@nestjs/jwt';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { TokenBlacklistService } from '../src/auth/token-blacklist.service';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
+import { AuthModule } from '../src/auth/auth.module';
 
 describe('Favorites (e2e)', () => {
   let app: INestApplication<App>;
@@ -32,15 +35,8 @@ describe('Favorites (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        ConfigModule,
-        FavoritesModule,
-        JwtModule.register({ secret: 'test-secret' }),
-      ],
-      providers: [
-        TokenBlacklistService,
-        { provide: APP_GUARD, useClass: JwtAuthGuard },
-      ],
+      imports: [ConfigModule, PrismaModule, AuthModule, FavoritesModule],
+      providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
     })
       .overrideProvider(PrismaService)
       .useValue(mockPrisma)
@@ -54,13 +50,17 @@ describe('Favorites (e2e)', () => {
     );
     await app.init();
 
+    const configService = moduleFixture.get<ConfigService>(ConfigService);
     const jwtService = moduleFixture.get<JwtService>(JwtService);
-    authToken = jwtService.sign({
-      sub: 'user-1',
-      email: 'test@test.com',
-      role: 'USER',
-      jti: 'jti-1',
-    });
+    authToken = jwtService.sign(
+      {
+        sub: 'user-1',
+        email: 'test@test.com',
+        role: 'USER',
+        jti: 'jti-1',
+      },
+      { secret: configService.get<string>('JWT_SECRET') },
+    );
   });
 
   afterAll(async () => {
