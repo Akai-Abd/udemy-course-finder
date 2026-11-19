@@ -11,7 +11,6 @@ import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Generator
-from urllib.parse import urlparse
 
 try:
     import psycopg2
@@ -50,15 +49,10 @@ class Database:
             return
 
         try:
-            parsed = urlparse(self._database_url)
             self._pool = pool.ThreadedConnectionPool(
                 self._min_connections,
                 self._max_connections,
-                host=parsed.hostname,
-                port=parsed.port or 5432,
-                dbname=parsed.path.lstrip("/").split("?")[0],
-                user=parsed.username,
-                password=parsed.password,
+                dsn=self._database_url,
             )
             logger.info("✅ PostgreSQL connection pool initialized")
         except psycopg2.Error as e:
@@ -130,5 +124,12 @@ class Database:
 
     def execute_many(self, query: str, params_list: list[tuple]) -> None:
         """Execute a query with multiple parameter sets."""
-        with self.get_cursor() as cursor:
+        if self._is_sqlite:
+            clean_query = query.replace("%s", "?")
+            with self.get_connection() as conn:
+                conn.executemany(clean_query, params_list)
+            return
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
             extras.execute_batch(cursor, query, params_list)
